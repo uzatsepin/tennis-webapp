@@ -3,7 +3,7 @@
     <!-- Hero Banner -->
     <div class="relative mb-6" style="z-index: 0">
       <div
-        class="absolute inset-0 bg-gradient-to-r from-blue-900 to-indigo-900 h-32 -mx-4 rounded-b-3xl"
+        class="absolute inset-0 bg-gradient-to-r from-blue-900 to-indigo-900 h-48 sm:h-56 -mx-4 rounded-b-3xl"
       ></div>
 
       <div class="relative pt-4 px-1">

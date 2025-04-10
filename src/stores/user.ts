@@ -21,10 +21,17 @@ export interface UserDisplay {
     id: number
     name: string
     username: string
+    firstName?: string
+    lastName?: string
     rating?: number
     photo?: string
     gamesPlayed?: number
     gamesWon?: number
+    gamesLost?: number
+    forehand?: string
+    height?: number
+    weight?: number
+    age?: number
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -40,7 +47,6 @@ export const useUserStore = defineStore('user', () => {
         error.value = null
 
         try {
-            console.log('Loading all users')
             const response = await userApi.getAllUsers()
 
             if (!response || !response.data) {
@@ -73,9 +79,7 @@ export const useUserStore = defineStore('user', () => {
         error.value = null
 
         try {
-            console.log(`Getting user by ID: ${id}`)
             const response = await userApi.getUserById(id)
-            console.log(response.data)
 
             if (!response || !response.data) {
                 return null
@@ -88,6 +92,11 @@ export const useUserStore = defineStore('user', () => {
                 rating: response.data.points,
                 gamesPlayed: response.data.gamesPlayed,
                 gamesWon: response.data.gamesWon,
+                gameLost: response.data.gamesLost,
+                forehand: response.data.forehand,
+                height: response.data.height,
+                weight: response.data.weight,
+                age: response.data.age,
             }
 
             // If this is the current user based on Telegram data
@@ -112,7 +121,6 @@ export const useUserStore = defineStore('user', () => {
         error.value = null
 
         try {
-            console.log('Registering user:', userData)
             const userToRegister = {
                 telegramId: userData.id,
                 username: userData.username || '',
@@ -161,9 +169,7 @@ export const useUserStore = defineStore('user', () => {
         error.value = null
 
         try {
-            console.log(`[UserStore] Fetching games for user: ${userId}`)
             const response = await userApi.getUserGames(userId)
-            console.log('[UserStore] User games response:', response)
             return response.data
         } catch (err: any) {
             console.error('[UserStore] Error fetching user games:', err)
@@ -179,9 +185,7 @@ export const useUserStore = defineStore('user', () => {
         error.value = null
 
         try {
-            console.log(`[UserStore] Fetching ranking for user: ${userId}`)
             const response = await userApi.getUserRanking(userId)
-            console.log('[UserStore] User ranking response:', response)
 
             if (!response.data) {
                 console.warn('[UserStore] No ranking data found')
@@ -198,6 +202,34 @@ export const useUserStore = defineStore('user', () => {
         }
     }
 
+    async function updateUserProfile(profileData: any) {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            if (!currentUser.value || !currentUser.value.id) {
+                throw new Error('User not authenticated')
+            }
+
+            // Use the correct endpoint for profile updates
+            const response = await userApi.updateUserProfile(currentUser.value.id, profileData)
+
+            // Update currentUser with new data
+            currentUser.value = {
+                ...currentUser.value,
+                ...response.data,
+            }
+
+            return currentUser.value
+        } catch (err: any) {
+            const errorMsg = err.message || 'Failed to update profile'
+            error.value = errorMsg
+            throw new Error(errorMsg)
+        } finally {
+            isLoading.value = false
+        }
+    }
+
     return {
         currentUser,
         allUsers,
@@ -209,5 +241,6 @@ export const useUserStore = defineStore('user', () => {
         registerUser,
         getUserGames,
         getUserRanking,
+        updateUserProfile,
     }
 })

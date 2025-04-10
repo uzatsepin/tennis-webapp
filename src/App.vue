@@ -98,15 +98,11 @@ const selectUser = async (userId) => {
 // Initialize the app
 const init = async () => {
   try {
-    loading.value = true;
-    console.log("Initializing app...");
-
     // First load all users
     await userStore.loadAllUsers();
 
     // Check if Telegram WebApp is available
     if (window.Telegram && window.Telegram.WebApp) {
-      console.log("Telegram WebApp found");
       telegramWebApp.value = window.Telegram.WebApp;
       telegramWebApp.value.ready();
 
@@ -116,14 +112,12 @@ const init = async () => {
         telegramWebApp.value.initDataUnsafe.user
       ) {
         const telegramId = telegramWebApp.value.initDataUnsafe.user.id.toString();
-        console.log("Telegram user ID:", telegramId);
 
         // Try to get user from database
         const user = await userStore.getUserById(telegramId);
 
         // If user not found, register them
         if (!user) {
-          console.log("User not found, registering...");
           const userData = {
             id: telegramId,
             name:
@@ -139,8 +133,6 @@ const init = async () => {
         }
       }
     } else {
-      console.log("Telegram WebApp not available");
-
       // For non-Telegram environment, select first user
       if (userStore.allUsers.value.length > 0) {
         await selectUser(userStore.allUsers.value[0].id);
@@ -179,25 +171,33 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden; /* Prevent horizontal scroll */
+  touch-action: pan-x pan-y; /* Disable double-tap to zoom */
 }
 
-/* Fix for mobile devices - prevent horizontal scroll */
+/* Fix for mobile devices - prevent horizontal scroll and disable double-tap zoom */
 html,
 body {
   overflow-x: hidden;
   position: relative;
   width: 100%;
   scroll-behavior: auto !important;
+  touch-action: manipulation; /* Prevents double-tap to zoom on iOS Safari */
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0); /* Remove tap highlight on mobile */
 }
 
-.light {
-  --tg-theme-bg-color: #f3f4f6;
-  --tg-theme-text-color: #111827;
-  --tg-theme-hint-color: #6b7280;
-  --tg-theme-link-color: #1e3a8a;
-  --tg-theme-button-color: #1e3a8a;
-  --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #ffffff;
+/* Apply touch-action to all interactive elements to prevent zoom */
+button,
+a,
+input,
+select,
+textarea,
+.interactive {
+  touch-action: manipulation;
+}
+
+/* Add meta viewport tag programmatically to ensure it's correctly set */
+:root {
+  --viewport-scale: 1;
 }
 
 /* Адаптация для мобильных устройств */
@@ -235,6 +235,21 @@ body {
   .w-16 {
     height: 3rem;
     width: 3rem;
+  }
+}
+
+/* Add new styles at the end to ensure they're not overridden */
+@media (pointer: coarse) {
+  /* Styles specific to touch devices */
+  * {
+    touch-action: manipulation; /* Apply to all elements on touch devices */
+  }
+
+  /* Increase tap target sizes for better usability */
+  button,
+  a {
+    min-height: 40px;
+    min-width: 40px;
   }
 }
 </style>

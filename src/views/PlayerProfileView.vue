@@ -67,7 +67,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center">
             <div
-              class="h-20 w-20 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center text-3xl font-bold mr-4"
+              class="h-18 w-18 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center text-3xl font-bold mr-4"
               :class="{ 'bg-green-100 text-green-800': isCurrentUser }"
             >
               {{ player.username.charAt(0).toUpperCase() }}
@@ -75,6 +75,9 @@
 
             <div>
               <h2 class="text-xl font-bold text-gray-900">{{ player.username }}</h2>
+              <p v-if="player.firstName || player.lastName" class="text-sm text-gray-500">
+                {{ player.firstName }} {{ player.lastName }}
+              </p>
               <p v-if="isCurrentUser" class="text-sm text-blue-900 font-medium">
                 <Icon icon="mdi:account" class="mr-1" inline />
                 Це ви
@@ -88,29 +91,62 @@
               </p>
             </div>
           </div>
-
+        </div>
+        <div class="mt-4 flex justify-between items-center">
           <button
             v-if="!isCurrentUser"
             @click="navigateToChallengePlayer"
-            class="bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-800 transition-colors flex items-center"
+            class="bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-800 transition-colors flex items-center w-full justify-center"
           >
             <Icon icon="mdi:tennis" class="mr-2" />
-            Викликати на гру
+            <span>Викликати на гру</span>
           </button>
         </div>
 
+        <!-- Player Details -->
+        <div v-if="hasAdditionalInfo" class="mt-6 border-t border-gray-100 pt-4">
+          <h3 class="font-medium text-gray-900 mb-3">Інформація про гравця</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div v-if="player.age" class="text-sm">
+              <p class="text-gray-500">Вік</p>
+              <p class="font-medium">{{ player.age }} років</p>
+            </div>
+            <div v-if="player.forehand" class="text-sm">
+              <p class="text-gray-500">Робоча рука</p>
+              <p class="font-medium">
+                {{ player.forehand === "right" ? "права" : "ліва" }}
+              </p>
+            </div>
+            <div v-if="player.height" class="text-sm">
+              <p class="text-gray-500">Зріст</p>
+              <p class="font-medium">{{ player.height }} см</p>
+            </div>
+            <div v-if="player.weight" class="text-sm">
+              <p class="text-gray-500">Вага</p>
+              <p class="font-medium">{{ player.weight }} кг</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="font-medium text-gray-900 mt-4">Статистика гравця</h3>
         <!-- Player Stats Quick View -->
-        <div class="mt-6 grid grid-cols-3 gap-3">
-          <div class="bg-blue-50 p-4 rounded-lg text-center">
-            <p class="text-gray-500 text-sm mb-1">Ігор зіграно</p>
+        <div class="mt-4 grid grid-cols-3 gap-3">
+          <div
+            class="bg-blue-50 p-4 rounded-lg text-center flex flex-col items-center justify-between"
+          >
+            <p class="text-gray-500 text-sm">Ігор зіграно</p>
             <p class="text-2xl font-bold text-gray-900">{{ completedGames.length }}</p>
           </div>
-          <div class="bg-blue-50 p-4 rounded-lg text-center">
-            <p class="text-gray-500 text-sm mb-1">Перемог</p>
+          <div
+            class="bg-blue-50 p-4 rounded-lg text-center flex flex-col items-center justify-between"
+          >
+            <p class="text-gray-500 text-sm">Перемог</p>
             <p class="text-2xl font-bold text-gray-900">{{ gamesWon }}</p>
           </div>
-          <div class="bg-blue-50 p-4 rounded-lg text-center">
-            <p class="text-gray-500 text-sm mb-1">Відсоток перемог</p>
+          <div
+            class="bg-blue-50 p-4 rounded-lg text-center flex flex-col items-center justify-between"
+          >
+            <p class="text-gray-500 text-sm mb-2">Відсоток перемог</p>
             <p class="text-2xl font-bold text-gray-900">{{ Math.round(winRate) }}%</p>
           </div>
         </div>
@@ -144,19 +180,7 @@
             <p>Ще немає зіграних ігор</p>
           </div>
           <div v-else>
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold mb-4 flex items-center">
-                <Icon icon="mdi:chart-line" class="mr-2 text-blue-900" />
-                Динаміка рейтингу
-              </h3>
-              <div class="bg-blue-50 p-4 rounded-lg">
-                <div class="h-64">
-                  <canvas ref="ratingChart"></canvas>
-                </div>
-              </div>
-            </div>
-
-            <h3 class="text-lg font-semibold mb-4 flex items-center mt-8">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
               <Icon icon="mdi:chart-donut" class="mr-2 text-blue-900" />
               Статистика ігор
             </h3>
@@ -339,11 +363,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, type Ref, nextTick } from "vue";
+import { ref, onMounted, computed, watch, type Ref, nextTick, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useGameStore } from "@/stores/game";
-import { Chart } from "chart.js";
 import { GameStatus } from "@/services/api";
 import { Icon } from "@iconify/vue";
 import TennisBallLoader from "@/components/TennisBallLoader.vue";
@@ -352,8 +375,14 @@ interface Player {
   _id: string;
   id: string;
   username: string;
+  firstName?: string;
+  lastName?: string;
   rating: number;
   photo?: string;
+  age?: number;
+  forehand?: string;
+  height?: number;
+  weight?: number;
 }
 
 interface Game {
@@ -398,8 +427,6 @@ const playerGames = ref<Game[]>([]);
 const playerRanking = ref<PlayerRanking | null>(null);
 const isLoading = ref(true);
 const errorMessage = ref("");
-const ratingChart: Ref<HTMLCanvasElement | null> = ref(null);
-let chartInstance: Chart | null = null;
 
 const activeTab = ref("stats");
 
@@ -411,7 +438,20 @@ const tabs = [
 
 // Check if viewing the current user's profile
 const isCurrentUser = computed(() => {
-  return userStore.currentUser && player.value && String(userStore.currentUser.id) === String(player.value.id);
+  return userStore.currentUser && player.value &&
+         String(userStore.currentUser.id) === String(player.value.id);
+});
+
+// Check if player has any additional info to display
+const hasAdditionalInfo = computed(() => {
+  return !!(
+    player.value?.firstName ||
+    player.value?.lastName ||
+    player.value?.age ||
+    player.value?.forehand ||
+    player.value?.height ||
+    player.value?.weight
+  );
 });
 
 onMounted(async () => {
@@ -432,8 +472,13 @@ onMounted(async () => {
       _id: userData.id,
       id: userData.id,
       username: userData.username,
+      firstName: userData.name?.split(' ')[0] || undefined,
+      lastName: userData.name?.split(' ')[1] || undefined,
       rating: userData.rating,
-      photo: undefined
+      age: userData.age,
+      forehand: userData.forehand,
+      height: userData.height,
+      weight: userData.weight,
     };
 
     // Load player games
@@ -448,142 +493,11 @@ onMounted(async () => {
     errorMessage.value = "Помилка завантаження даних гравця";
   } finally {
     isLoading.value = false;
-
-    // Wait longer for the chart to initialize - DOM needs more time
-    setTimeout(async () => {
-      if (activeTab.value === 'stats' &&
-          playerRanking.value?.history?.length &&
-          completedGames.value.length > 0) {
-        initRatingChart();
-      }
-    }, 500);
-  }
-
-  // Add chart initialization after loading data
-  if (!isLoading.value && activeTab.value === 'stats' && playerRanking.value?.history?.length) {
-    await nextTick();
-    initRatingChart();
   }
 });
 
-// Initialize or update chart when data changes or tab changes - Fixed implementation
-watch([playerRanking, activeTab], async () => {
-  if (activeTab.value === 'stats' && playerRanking.value?.history?.length) {
-    await nextTick(); // Wait for DOM update
-    if (ratingChart.value) {
-      initRatingChart();
-    }
-  }
-}, { immediate: false });
 
-// Make sure to reset scroll position when tab changes
-watch(activeTab, () => {
-  window.scrollTo(0, 0);
-});
-
-// Change watch implementation to use setTimeout for more reliable chart rendering
-watch([playerRanking, activeTab], () => {
-  if (activeTab.value === 'stats' &&
-      playerRanking.value?.history?.length &&
-      completedGames.value.length > 0) {
-    // Use setTimeout for more reliable rendering after tab change
-    setTimeout(() => {
-      initRatingChart();
-    }, 500);
-  }
-});
-
-// Improved chart initialization
-const initRatingChart = () => {
-  if (!ratingChart.value ||
-      !playerRanking.value?.history ||
-      playerRanking.value.history.length === 0) {
-    console.log('Chart initialization conditions not met');
-    return;
-  }
-
-  console.log('Starting chart initialization');
-
-  // Destroy previous chart instance if it exists
-  if (chartInstance) {
-    chartInstance.destroy();
-    chartInstance = null;
-  }
-
-  const ctx = ratingChart.value.getContext('2d');
-  if (!ctx) {
-    console.log('Failed to get canvas context');
-    return;
-  }
-
-  // Make sure we have data to display
-  const history = [...playerRanking.value.history].reverse();
-  if (history.length === 0) {
-    console.log('No history data available');
-    return;
-  }
-
-  // Add console log to help debug
-  console.log('Initializing chart with data:', history);
-
-  try {
-    chartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: history.map(item => formatDate(item.date)),
-        datasets: [{
-          label: 'Рейтинг',
-          data: history.map(item => item.rating),
-          fill: true,
-          backgroundColor: 'rgba(59, 130, 246, 0.2)',
-          borderColor: '#3b82f6',
-          tension: 0.1,
-          pointBackgroundColor: '#3b82f6',
-          pointRadius: 4,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          },
-          tooltip: {
-            backgroundColor: '#1e3a8a',
-            titleFont: {
-              size: 14,
-              weight: 'bold'
-            },
-            bodyFont: {
-              size: 13
-            },
-            padding: 10,
-            displayColors: false
-          }
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false
-            },
-            ticks: {
-              maxRotation: 45,
-              minRotation: 45
-            }
-          },
-          y: {
-            beginAtZero: false
-          }
-        }
-      }
-    });
-    console.log('Chart initialized successfully');
-  } catch (error) {
-    console.error('Error initializing chart:', error);
-  }
-};
-
+// Computed properties for data display
 const completedGames = computed(() => {
   return playerGames.value.filter(game => game.status === GameStatus.COMPLETED);
 });
@@ -631,6 +545,7 @@ const currentStreak = computed((): CurrentStreak => {
   return { isWin: firstGameWon, count };
 });
 
+// Helper functions
 const formatDate = (dateString: string): string => {
   if (!dateString) return "—";
 

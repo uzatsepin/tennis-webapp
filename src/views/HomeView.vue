@@ -33,7 +33,10 @@
 
             <div class="flex-1">
               <h2 class="font-bold text-lg text-gray-900">
-                {{ userStore.currentUser.name }}
+                <span v-if="userStore.currentUser.name">
+                  {{ userStore.currentUser.name }}
+                </span>
+                <span v-else>{{ userStore.currentUser.username }}</span>
               </h2>
               <p class="text-gray-500 text-sm">@{{ userStore.currentUser.username }}</p>
 
@@ -190,7 +193,7 @@
 
           <div class="flex items-center">
             <div class="flex flex-col items-center flex-1">
-              <span class="font-medium text-gray-900">{{ game.player1Username }}</span>
+              <span class="font-medium text-gray-900">@{{ game.player1Username }}</span>
               <span v-if="game.score" class="mt-1 text-lg font-bold">
                 {{ game.score.split(":")[0] }}
               </span>
@@ -199,7 +202,7 @@
               <Icon icon="mdi:versus" class="text-xl" />
             </div>
             <div class="flex flex-col items-center flex-1">
-              <span class="font-medium text-gray-900">{{ game.player2Username }}</span>
+              <span class="font-medium text-gray-900">@{{ game.player2Username }}</span>
               <span v-if="game.score" class="mt-1 text-lg font-bold">
                 {{ game.score.split(":")[1] }}
               </span>
@@ -269,7 +272,17 @@
             </div>
 
             <div class="ml-3 flex-1">
-              <div class="font-medium text-gray-900">{{ player.username }}</div>
+              <div v-if="player.user?.firstName || player.user?.lastName">
+                <div class="font-medium text-gray-900">
+                  {{ player.user?.firstName }} {{ player.user?.lastName }}
+                </div>
+                <div class="text-sm text-gray-600">{{ player.username }}</div>
+              </div>
+              <div v-else>
+                <div class="font-medium text-gray-900">
+                  {{ player.username }}
+                </div>
+              </div>
               <div class="mt-0.5 flex items-center text-sm text-gray-500">
                 <Icon icon="mdi:trophy" class="mr-1 text-blue-900" />
                 <span>{{ player.points }} очків</span>
@@ -339,6 +352,8 @@ const pendingGamesCount = computed(() => {
       (game.player1Id === userId || game.player2Id === userId)
   ).length;
 });
+
+console.log("pendingGamesCount", pendingGamesCount.value);
 
 onMounted(async () => {
   isLoading.value = true;

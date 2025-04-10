@@ -28,47 +28,88 @@
         v-if="currentUser"
         class="relative bg-white rounded-xl shadow-lg p-6 mx-1 z-20"
       >
-        <div class="flex items-center">
-          <div class="mr-4">
-            <img
-              v-if="telegramPhoto"
-              :src="telegramPhoto"
-              class="h-16 w-16 rounded-xl object-cover"
-              alt="Profile"
-            />
-            <div
-              v-else
-              class="h-16 w-16 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 text-white flex items-center justify-center text-xl font-bold"
-            >
-              {{ currentUser?.name.charAt(0) }}
+        <div class="flex items-center justify-between relative">
+          <div class="flex items-center">
+            <div class="mr-4">
+              <img
+                v-if="telegramPhoto"
+                :src="telegramPhoto"
+                class="h-16 w-16 rounded-xl object-cover"
+                alt="Profile"
+              />
+              <div
+                v-else
+                class="h-16 w-16 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 text-white flex items-center justify-center text-xl font-bold"
+              >
+                {{ currentUser?.name.charAt(0) }}
+              </div>
+            </div>
+
+            <div class="flex-1">
+              <h2 class="font-bold text-lg text-gray-900">{{ currentUser?.name }}</h2>
+              <p class="text-gray-500 text-sm">@{{ currentUser?.username }}</p>
+
+              <p v-if="hasUserFullName" class="text-sm text-gray-500">
+                {{ currentUser?.firstName }} {{ currentUser?.lastName }}
+              </p>
+
+              <div class="flex mt-2 space-x-4">
+                <div>
+                  <p class="text-xs text-gray-500">Рейтинг</p>
+                  <p class="font-semibold">{{ currentUser?.rating || 0 }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">Ігор</p>
+                  <p class="font-semibold">
+                    {{ currentUser?.gamesPlayed || 0 }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">Перемог</p>
+                  <p class="font-semibold">{{ currentUser?.gamesWon || 0 }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">% перемог</p>
+                  <p class="font-semibold">
+                    {{ winRate !== null ? winRate + "%" : "—" }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="flex-1">
-            <h2 class="font-bold text-lg text-gray-900">{{ currentUser?.name }}</h2>
-            <p class="text-gray-500 text-sm">@{{ currentUser?.username }}</p>
+          <!-- Edit Profile Button -->
+          <div class="absolute top-1 right-1">
+            <button
+              @click="navigateToEditProfile"
+              class="flex items-center text-blue-900 px-3 py-1.5 rounded-lg border border-blue-900 hover:bg-blue-50 transition-colors text-sm"
+            >
+              <Icon icon="mdi:pencil" />
+            </button>
+          </div>
+        </div>
 
-            <div class="flex mt-2 space-x-4">
-              <div>
-                <p class="text-xs text-gray-500">Рейтинг</p>
-                <p class="font-semibold">{{ currentUser?.rating || 0 }}</p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500">Ігор</p>
-                <p class="font-semibold">
-                  {{ currentUser?.gamesPlayed || 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500">Перемог</p>
-                <p class="font-semibold">{{ currentUser?.gamesWon || 0 }}</p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500">% перемог</p>
-                <p class="font-semibold">
-                  {{ winRate !== null ? winRate + "%" : "—" }}
-                </p>
-              </div>
+        <!-- Additional player information -->
+        <div v-if="hasAdditionalInfo" class="mt-6 border-t border-gray-100 pt-4">
+          <h3 class="font-medium text-gray-900 mb-3">Особисті дані</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div v-if="currentUser?.age" class="text-sm">
+              <p class="text-gray-500">Вік</p>
+              <p class="font-medium">{{ currentUser.age }} років</p>
+            </div>
+            <div v-if="currentUser?.forehand" class="text-sm">
+              <p class="text-gray-500">Робоча рука</p>
+              <p class="font-medium">
+                {{ currentUser.forehand === "right" ? "права" : "ліва" }}
+              </p>
+            </div>
+            <div v-if="currentUser?.height" class="text-sm">
+              <p class="text-gray-500">Зріст</p>
+              <p class="font-medium">{{ currentUser.height }} см</p>
+            </div>
+            <div v-if="currentUser?.weight" class="text-sm">
+              <p class="text-gray-500">Вага</p>
+              <p class="font-medium">{{ currentUser.weight }} кг</p>
             </div>
           </div>
         </div>
@@ -512,7 +553,7 @@
               </h3>
               <div class="flex flex-col md:flex-row">
                 <div class="w-full md:w-1/2 h-60">
-                  <Doughnut :data="winLossChartData" :options="winLossChartOptions" />
+                  <canvas ref="winLossChart" width="400" height="400"></canvas>
                 </div>
                 <div
                   class="w-full md:w-1/2 flex flex-col justify-center pl-0 md:pl-5 mt-4 md:mt-0"
@@ -536,7 +577,7 @@
                 Динаміка результатів
               </h3>
               <div v-if="completedGames.length >= 2" class="h-60">
-                <Line :data="performanceChartData" :options="performanceChartOptions" />
+                <canvas ref="performanceChart" width="400" height="400"></canvas>
               </div>
               <div v-else class="text-center py-10 text-gray-500">
                 <Icon
@@ -603,38 +644,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useGameStore } from "@/stores/game";
 import { GameStatus, type Game } from "@/services/api";
 import { Icon } from "@iconify/vue";
 import TennisBallLoader from "@/components/TennisBallLoader.vue";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Filler,
-} from "chart.js";
-
-// Register Chart.js components
-ChartJS.register(
-  ArcElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+import Chart from 'chart.js/auto';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -680,6 +697,13 @@ onMounted(async () => {
     console.error("Error loading user data:", error);
   } finally {
     isLoading.value = false;
+
+    // Use setTimeout to ensure DOM is fully rendered
+    setTimeout(() => {
+      if (activeTab.value === 'statistics') {
+        initCharts();
+      }
+    }, 300);
   }
 });
 
@@ -745,6 +769,10 @@ const navigateToGameResult = (gameId:string) => {
   router.push(`/games/${gameId}/result`);
 };
 
+const navigateToEditProfile = () => {
+  router.push("/profile/edit");
+};
+
 // Helper functions
 const formatDate = (dateString: string | number | Date) => {
   if (!dateString) return "—";
@@ -793,96 +821,175 @@ const canAddResult = (game:Game) => {
   );
 };
 
-// Chart data for statistics tab
-const winLossChartData = computed(() => ({
-  labels: ["Перемоги", "Поразки"],
-  datasets: [
-    {
-      data: [myWinsCount.value, myLossesCount.value],
-      backgroundColor: ["#2563EB", "#E5E7EB"],
-      borderWidth: 0,
-      hoverOffset: 4,
-    },
-  ],
-}));
+const hasAdditionalInfo = computed(() => {
+  if (!currentUser.value) return false;
 
-const winLossChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  cutout: "60%",
-  plugins: {
-    legend: {
-      display: false,
-    },
-    tooltip: {
-      callbacks: {
-        label: function (context:any) {
-          const value = context.raw;
-          const total = myWinsCount.value + myLossesCount.value;
-          const percentage = Math.round((value / total) * 100);
-          return `${context.label}: ${value} (${percentage}%)`;
-        },
-      },
-    },
-  },
-};
-
-const performanceChartData = computed(() => {
-  // Get last 5 games
-  const lastGames = [...completedGames.value]
-    .sort(
-      (a, b) => new Date(b.scheduledTime).getTime() - new Date(a.scheduledTime).getTime()
-    )
-    .slice(0, 5)
-    .reverse();
-
-  const labels = lastGames.map((game) => {
-    const date = new Date(game.scheduledTime);
-    return date.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
-  });
-
-  const data = lastGames.map((game) => {
-    return game.winnerId === currentUser.value?.id ? 1 : 0;
-  });
-
-  return {
-    labels,
-    datasets: [
-      {
-        label: "Результат",
-        data,
-        backgroundColor: "rgba(37, 99, 235, 0.2)",
-        borderColor: "#2563EB",
-        borderWidth: 2,
-        pointBackgroundColor: "#2563EB",
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
+  return !!(
+    currentUser.value.age ||
+    currentUser.value.forehand ||
+    currentUser.value.height ||
+    currentUser.value.weight
+  );
 });
 
-const performanceChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  scales: {
-    y: {
-      min: 0,
-      max: 1,
-      ticks: {
-        stepSize: 1,
-        callback: function (value:number) {
-          return value === 1 ? "Перемога" : "Поразка";
+const hasUserFullName = computed(() => {
+  if (!currentUser.value) return false;
+  return !!(currentUser.value.firstName || currentUser.value.lastName);
+});
+
+// Chart references and instances
+const winLossChart = ref<HTMLCanvasElement | null>(null);
+const performanceChart = ref<HTMLCanvasElement | null>(null);
+let winLossChartInstance: Chart | null = null;
+let performanceChartInstance: Chart | null = null;
+
+// Better chart initialization with more robust error handling
+const initCharts = () => {
+
+  try {
+    // Win/Loss chart initialization
+    if (winLossChart.value && completedGames.value.length > 0) {
+      // Clean up existing chart instance if it exists
+      if (winLossChartInstance) {
+        winLossChartInstance.destroy();
+      }
+
+      const ctx = winLossChart.value.getContext('2d');
+      if (!ctx) {
+        console.error("Could not get 2D context for win/loss chart");
+        return;
+      }
+
+      winLossChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ["Перемоги", "Поразки"],
+          datasets: [
+            {
+              data: [myWinsCount.value, myLossesCount.value],
+              backgroundColor: ["#2563EB", "#E5E7EB"],
+              borderWidth: 0,
+              hoverOffset: 4,
+            },
+          ],
         },
-      },
-    },
-  },
-  plugins: {
-    legend: {
-      display: false,
-    },
-  },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const value = context.raw as number;
+                  const total = myWinsCount.value + myLossesCount.value;
+                  const percentage = Math.round((value / total) * 100);
+                  return `${context.label}: ${value} (${percentage}%)`;
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    // Performance chart initialization
+    if (performanceChart.value && completedGames.value.length >= 2) {
+      // Clean up existing chart instance if it exists
+      if (performanceChartInstance) {
+        performanceChartInstance.destroy();
+      }
+
+      const ctx = performanceChart.value.getContext('2d');
+      if (!ctx) {
+        console.error("Could not get 2D context for performance chart");
+        return;
+      }
+
+      // Get last 5 games for the chart
+      const lastGames = [...completedGames.value]
+        .sort((a, b) => new Date(b.scheduledTime).getTime() - new Date(a.scheduledTime).getTime())
+        .slice(0, 5)
+        .reverse();
+
+      const labels = lastGames.map((game) => {
+        const date = new Date(game.scheduledTime);
+        return date.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
+      });
+
+      const data = lastGames.map((game) => {
+        return game.winnerId === currentUser.value?.id ? 1 : 0;
+      });
+
+      performanceChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Результат",
+              data,
+              backgroundColor: "rgba(37, 99, 235, 0.2)",
+              borderColor: "#2563EB",
+              borderWidth: 2,
+              pointBackgroundColor: "#2563EB",
+              fill: true,
+              tension: 0.4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              min: 0,
+              max: 1,
+              ticks: {
+                stepSize: 1,
+                callback: function (value) {
+                  return value === 1 ? "Перемога" : "Поразка";
+                },
+              },
+            },
+          },
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error initializing charts:", error);
+  }
 };
+
+// Make sure the charts are rendered when needed
+watch(activeTab, (newTab) => {
+  if (newTab === 'statistics') {
+    // Use setTimeout to ensure DOM is updated
+    setTimeout(() => {
+      initCharts();
+    }, 300);
+  }
+});
+
+// Clean up charts when component unmounts
+onBeforeUnmount(() => {
+  if (winLossChartInstance) {
+    winLossChartInstance.destroy();
+    winLossChartInstance = null;
+  }
+  if (performanceChartInstance) {
+    performanceChartInstance.destroy();
+    performanceChartInstance = null;
+  }
+});
 </script>
 
 <style scoped>

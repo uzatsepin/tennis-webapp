@@ -1,28 +1,11 @@
 <template>
   <div>
     <!-- Hero Banner -->
-    <div class="relative mb-6" style="z-index: 0">
-      <div
-        class="absolute inset-0 bg-gradient-to-r from-blue-900 to-indigo-900 h-32 -mx-4 rounded-b-3xl"
-      ></div>
-
-      <div class="relative pt-4 px-1 z-10">
-        <div class="flex justify-between items-center mb-6">
-          <div class="flex items-center">
-            <button
-              @click="router.back()"
-              class="mr-3 text-white p-1.5 rounded-full hover:bg-white/10 transition-colors"
-            >
-              <Icon icon="mdi:arrow-left" class="h-6 w-6" />
-            </button>
-            <div class="text-white">
-              <h1 class="text-2xl font-bold">Запланувати гру</h1>
-              <p class="text-blue-200 text-sm">Оберіть суперника та час</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <HeroBanner
+      title="Запланувати гру"
+      subtitle="Оберіть суперника та час"
+      @back="router.back()"
+    />
 
     <!-- Loading State -->
     <div
@@ -54,283 +37,71 @@
       style="position: relative; z-index: 10"
     >
       <!-- Player Selection -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
-        <h2 class="text-lg font-semibold text-gray-900 flex items-center mb-5">
-          <Icon icon="mdi:account-multiple" class="mr-2 text-blue-900" />
-          Гравці
-        </h2>
-
-        <!-- Current Player -->
-        <div class="flex items-center p-4 bg-blue-50 rounded-lg mb-4">
-          <div
-            class="h-14 w-14 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center font-bold mr-3 text-xl"
-          >
-            {{ currentUser?.username.charAt(0).toUpperCase() || "В" }}
-          </div>
-          <div class="flex-grow">
-            <p class="font-medium text-gray-900">{{ currentUser?.username || "Ви" }}</p>
-            <p class="text-sm text-gray-600">
-              Рейтинг:
-              <span class="font-medium text-blue-900">{{
-                currentUser?.rating || 1000
-              }}</span>
-            </p>
-          </div>
-          <div
-            class="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-medium"
-          >
-            Ви
-          </div>
-        </div>
-
-        <div class="flex items-center my-4">
-          <div class="flex-grow border-t border-gray-200"></div>
-          <div class="mx-4 text-gray-400 flex items-center">
-            <Icon icon="mdi:versus" class="mr-1" />
-            <span>проти</span>
-          </div>
-          <div class="flex-grow border-t border-gray-200"></div>
-        </div>
-
-        <!-- Opponent Search -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Оберіть суперника
-          </label>
-
-          <div class="relative">
-            <div
-              class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-            >
-              <Icon icon="mdi:magnify" class="text-gray-400" />
-            </div>
-            <input
-              type="text"
-              v-model="searchQuery"
-              placeholder="Пошук гравця за іменем"
-              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              @focus="showUserDropdown = true"
-              @blur="handleSearchBlur"
-            />
-          </div>
-
-          <!-- Filtered Users Dropdown -->
-          <div
-            v-if="showUserDropdown && filteredUsers.length > 0"
-            class="mt-1 bg-white rounded-lg border border-gray-200 shadow-lg max-h-60 overflow-y-auto"
-          >
-            <div class="p-2 border-b border-gray-200 text-xs text-gray-500">
-              {{ filteredUsers.length }} гравців знайдено
-            </div>
-            <div
-              v-for="user in filteredUsers"
-              :key="user.id"
-              @click="selectOpponent(user)"
-              class="p-3 flex items-center hover:bg-blue-50 cursor-pointer"
-              :class="{ 'bg-blue-50': formData.player2Id === user.id }"
-            >
-              <div
-                class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3 text-blue-800 font-medium"
-              >
-                {{ user.username.charAt(0).toUpperCase() }}
-              </div>
-              <div class="flex-grow">
-                <p class="font-medium text-gray-900">{{ user.username }}</p>
-                <p class="text-xs text-gray-500">Рейтинг: {{ user.rating || 1000 }}</p>
-              </div>
-              <Icon
-                v-if="formData.player2Id === user.id"
-                icon="mdi:check-circle"
-                class="text-green-600 ml-2"
-              />
-            </div>
-          </div>
-
-          <div
-            v-else-if="showUserDropdown && searchQuery && !filteredUsers.length"
-            class="mt-1 p-4 bg-gray-50 rounded-lg text-center text-gray-500"
-          >
-            Гравців не знайдено
-          </div>
-        </div>
-
-        <!-- Selected Opponent -->
-        <div
-          v-if="selectedOpponent"
-          class="p-4 bg-blue-50 rounded-lg border border-blue-100"
-        >
-          <div class="flex items-center">
-            <div
-              class="h-14 w-14 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center font-bold mr-3 text-xl"
-            >
-              {{ selectedOpponent.username.charAt(0).toUpperCase() }}
-            </div>
-            <div class="flex-grow">
-              <p class="font-medium text-gray-900">{{ selectedOpponent.username }}</p>
-              <p class="text-sm text-gray-600">
-                Рейтинг:
-                <span class="font-medium text-blue-900">{{
-                  selectedOpponent.rating || 1000
-                }}</span>
-              </p>
-            </div>
-            <button
-              type="button"
-              @click="clearOpponent"
-              class="text-gray-400 hover:text-red-500"
-              aria-label="Remove opponent"
-            >
-              <Icon icon="mdi:close-circle" class="text-xl" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <PlayerSelection
+        :show-user-dropdown="showUserDropdown"
+        :current-user="currentUser"
+        :filtered-users="filteredUsers"
+        :selected-opponent="selectedOpponent"
+        :selected-user-id="formData.player2Id"
+        :search-query="searchQuery"
+        @update:search-query="searchQuery = $event"
+        @update:show-dropdown="showUserDropdown = $event"
+      />
 
       <!-- Date and Time -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
-        <h2 class="text-lg font-semibold text-gray-900 flex items-center mb-5">
-          <Icon icon="mdi:calendar-clock" class="mr-2 text-blue-900" />
-          Дата та час
-        </h2>
-
-        <div class="grid gap-4 mb-2">
-          <div>
-            <label for="date" class="block text-sm font-medium text-gray-700 mb-2">
-              Дата гри
-            </label>
-            <input
-              id="date"
-              type="date"
-              v-model="formData.date"
-              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              :min="currentDate"
-              required
-            />
-          </div>
-
-          <div>
-            <label for="time" class="block text-sm font-medium text-gray-700 mb-2">
-              Час гри
-            </label>
-            <input
-              id="time"
-              type="time"
-              v-model="formData.time"
-              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-        </div>
-
-        <p class="text-sm text-gray-500 mt-4 flex items-center">
-          <Icon icon="mdi:information-outline" class="mr-1 text-blue-900" />
-          Виберіть час, коли ви зможете зустрітися з суперником для гри
-        </p>
-      </div>
+      <DateTimePicker
+        v-model:date="formData.date"
+        v-model:time="formData.time"
+        :current-date="currentDate"
+      />
 
       <!-- Game Preview -->
-      <div v-if="formData.player2Id" class="bg-white rounded-xl shadow-sm p-6">
-        <h2 class="text-lg font-semibold text-gray-900 flex items-center mb-4">
-          <Icon icon="mdi:eye" class="mr-2 text-blue-900" />
-          Попередній перегляд гри
-        </h2>
-
-        <div class="bg-blue-50 p-4 rounded-lg">
-          <div class="flex items-center justify-between">
-            <div class="text-center">
-              <div
-                class="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center font-bold mx-auto mb-2"
-              >
-                <span class="text-blue-900 font-bold">
-                  {{ currentUser?.username.charAt(0).toUpperCase() }}
-                </span>
-              </div>
-              <p class="font-medium text-gray-900">
-                {{ truncateText(currentUser?.username, 12) }}
-              </p>
-            </div>
-
-            <div class="text-gray-500 font-medium">vs</div>
-
-            <div class="text-center">
-              <div
-                class="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center font-bold mx-auto mb-2"
-              >
-                <span class="text-blue-900 font-bold">
-                  {{ selectedOpponent?.username.charAt(0).toUpperCase() }}
-                </span>
-              </div>
-              <p class="font-medium text-gray-900">
-                {{ truncateText(selectedOpponent?.username, 12) }}
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-center mt-4 text-sm text-gray-600">
-            <Icon icon="mdi:calendar" class="mr-1" />
-            <span>{{ formatDateTime(getFullScheduledTime()) }}</span>
-          </div>
-        </div>
-      </div>
+      <GamePreview
+        v-if="formData.player2Id"
+        :current-user="currentUser"
+        :opponent="selectedOpponent"
+        :formatted-date-time="formatDateTime(getFullScheduledTime())"
+      />
 
       <!-- Submit Button -->
-      <div class="sticky bottom-20 bg-white rounded-xl shadow-lg p-4">
-        <button
-          type="submit"
-          class="w-full bg-blue-900 text-white py-3 rounded-lg font-medium hover:bg-blue-800 transition-colors flex items-center justify-center"
-          :disabled="!formData.player2Id || !formData.date || !formData.time"
-          :class="{
-            'opacity-50 cursor-not-allowed':
-              !formData.player2Id || !formData.date || !formData.time,
-          }"
-        >
-          <Icon icon="mdi:tennis" class="mr-2" />
-          Запланувати гру
-        </button>
-
-        <p v-if="!formData.player2Id" class="text-center text-sm text-gray-500 mt-2">
-          Спочатку виберіть суперника
-        </p>
-        <p
-          v-else-if="!formData.date || !formData.time"
-          class="text-center text-sm text-gray-500 mt-2"
-        >
-          Виберіть дату та час
-        </p>
-      </div>
+      <SubmitButton
+        :has-opponent="!!gameStore.selectedOpponent"
+        :has-date-time="!!formData.date && !!formData.time"
+        button-text="Запланувати гру"
+        @submit="handleSubmit"
+      />
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useGameStore } from "@/stores/game";
 import { Icon } from "@iconify/vue";
+import type { User } from "@/services/api";
+
+// Components
 import TennisBallLoader from "@/components/TennisBallLoader.vue";
+import HeroBanner from "@/components/game/HeroBanner.vue";
+import PlayerSelection from "@/components/game/new-game/PlayerSelection.vue";
+import DateTimePicker from "@/components/game/new-game/DateTimePicker.vue";
+import GamePreview from "@/components/game/new-game/GamePreview.vue";
+import SubmitButton from "@/components/game/new-game/SubmitButton.vue";
 
-interface User {
-  id: string | number;
-  username: string;
-  name?: string;
-  rating?: number;
-  photo?: string;
-  gamesPlayed?: number;
-  gamesWon?: number;
-}
-
+// Stores and Router
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const gameStore = useGameStore();
 
+// State
 const allUsers = ref<User[]>([]);
 const isLoading = ref(true);
 const errorMessage = ref("");
 const searchQuery = ref("");
 const showUserDropdown = ref(false);
-const selectedOpponent = ref<User | null>(null);
 
 // Form data with separate date and time fields for better UX
 const formData = ref({
@@ -340,7 +111,7 @@ const formData = ref({
     hour: "2-digit",
     minute: "2-digit",
   }), // format: HH:MM
-  player2Id: "",
+  player2Id: gameStore.selectedOpponent?.telegramId.toString() || "",
 });
 
 // Get current date in YYYY-MM-DD format for min attribute
@@ -348,14 +119,33 @@ const currentDate = computed(() => {
   return new Date().toISOString().split("T")[0];
 });
 
-const currentUser = computed(() => userStore.currentUser);
+// Get the selected opponent from the game store
+const selectedOpponent = computed(() => gameStore.selectedOpponent);
+
+// Map current user to match the User type required by components
+const currentUser = computed(() => {
+  if (!userStore.currentUser) return null;
+
+  return {
+    _id: userStore.currentUser.id.toString(),
+    telegramId: Number(userStore.currentUser.id),
+    username: userStore.currentUser.username,
+    firstName: userStore.currentUser.firstName || userStore.currentUser.username,
+    points: userStore.currentUser.rating || 0,
+    gamesWon: userStore.currentUser.gamesWon || 0,
+    gamesLost: userStore.currentUser.gamesLost || 0,
+    gamesPlayed: userStore.currentUser.gamesPlayed || 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+});
 
 // Filter users based on search query
 const filteredUsers = computed(() => {
   if (!searchQuery.value) {
     return allUsers.value
-      .filter((user) => user.id !== currentUser.value?.id)
-      .sort((a, b) => (b.rating || 1000) - (a.rating || 1000))
+      .filter((user) => user._id !== currentUser.value?._id)
+      .sort((a, b) => (b.points || 1000) - (a.points || 1000))
       .slice(0, 100);
   }
 
@@ -363,9 +153,9 @@ const filteredUsers = computed(() => {
   return allUsers.value
     .filter(
       (user) =>
-        user.id !== currentUser.value?.id && user.username.toLowerCase().includes(query)
+        user._id !== currentUser.value?._id && user.username.toLowerCase().includes(query)
     )
-    .sort((a, b) => (b.rating || 1000) - (a.rating || 1000))
+    .sort((a, b) => (b.points || 1000) - (a.points || 1000))
     .slice(0, 100);
 });
 
@@ -373,16 +163,32 @@ const filteredUsers = computed(() => {
 onMounted(async () => {
   isLoading.value = true;
   try {
+    // Clear any previously selected opponent
+    gameStore.clearOpponent();
+
     // Load all users
     await userStore.loadAllUsers();
-    allUsers.value = userStore.allUsers;
+    allUsers.value = userStore.allUsers.map((user) => ({
+      _id: user.id.toString(),
+      telegramId: Number(user.id),
+      username: user.username,
+      firstName: user.firstName || user.username,
+      lastName: user.lastName,
+      points: user.rating || 0,
+      gamesWon: user.gamesWon || 0,
+      gamesLost: user.gamesLost || 0,
+      gamesPlayed: user.gamesPlayed || 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rating: user.rating,
+    }));
 
     // Check if opponent ID was provided in the query
     const opponentId = route.query.opponent as string;
     if (opponentId) {
-      const opponent = allUsers.value.find((user) => user.id === opponentId);
+      const opponent = allUsers.value.find((user) => user._id === opponentId);
       if (opponent) {
-        selectOpponent(opponent);
+        handleSelectOpponent(opponent);
       }
     }
   } catch (error) {
@@ -393,19 +199,22 @@ onMounted(async () => {
   }
 });
 
-// Select opponent
-const selectOpponent = (user: User) => {
-  formData.value.player2Id = String(user.id);
-  selectedOpponent.value = user;
-  searchQuery.value = user.username;
-  showUserDropdown.value = false;
-};
+// Handle opponent selection using the game store
+const handleSelectOpponent = (user: User) => {
+  // Use the store function to get the correct ID
+  const opponentId = gameStore.selectedOpponent?.telegramId.toString();
 
-// Clear opponent selection
-const clearOpponent = () => {
-  formData.value.player2Id = "";
-  selectedOpponent.value = null;
-  searchQuery.value = "";
+  if (opponentId) {
+    formData.value.player2Id = opponentId;
+    searchQuery.value = user.username;
+    showUserDropdown.value = false;
+
+    console.log("Selected opponent:", user);
+    console.log("Opponent ID set to:", formData.value.player2Id);
+  } else {
+    console.error("Failed to get valid ID from opponent");
+    errorMessage.value = "Помилка вибору суперника";
+  }
 };
 
 // Get full scheduled time by combining date and time
@@ -428,19 +237,8 @@ const formatDateTime = (dateTimeString: string | null): string => {
   });
 };
 
-// Truncate text for display
-const truncateText = (text: string | undefined, maxLength: number): string => {
-  if (!text) return "";
-  return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-};
-
 // Validate form before submission
 const validateForm = () => {
-  if (!formData.value.player2Id) {
-    errorMessage.value = "Будь ласка, оберіть суперника";
-    return false;
-  }
-
   if (!formData.value.date || !formData.value.time) {
     errorMessage.value = "Будь ласка, оберіть дату та час";
     return false;
@@ -475,11 +273,15 @@ const handleSubmit = async () => {
 
   try {
     const scheduledTime = getFullScheduledTime();
+
+    // Ensure we're sending correctly formatted IDs
     const gameData = {
-      player1Id: currentUser.value.id,
-      player2Id: formData.value.player2Id,
+      player1Id: currentUser.value.telegramId,
+      player2Id: gameStore.selectedOpponent?.telegramId,
       scheduledTime,
     };
+
+    console.log("Creating game with data:", gameData);
 
     // Send POST request to create a game
     const newGame = await gameStore.createGame(gameData);
@@ -496,35 +298,4 @@ const handleSubmit = async () => {
     isLoading.value = false;
   }
 };
-
-// Handle input blur with timeout to allow for clicking dropdown items
-const handleSearchBlur = (): void => {
-  setTimeout(() => {
-    showUserDropdown.value = false;
-  }, 200);
-};
 </script>
-
-<style scoped>
-.transition-colors {
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-/* Custom scrollbar for dropdown */
-.max-h-60 {
-  scrollbar-width: thin;
-}
-
-.max-h-60::-webkit-scrollbar {
-  width: 6px;
-}
-
-.max-h-60::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.max-h-60::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 3px;
-}
-</style>

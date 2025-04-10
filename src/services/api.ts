@@ -23,9 +23,11 @@ export interface User {
     gamesLost: number
     createdAt: Date
     updatedAt: Date
+    rating?: number
 }
 
 export interface Game {
+    id?: number
     _id?: string
     player1Id: number
     player2Id: number
@@ -50,6 +52,15 @@ export interface Ranking {
     user?: User // Вложенный объект пользователя
 }
 
+export interface selectedUser {
+    id: number
+    name: string
+    username: string
+    rating: number
+    gamesPlayed: number
+    gamesWon: number
+}
+
 // Create an axios instance with default config
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || 'https://tennis-api.razserv.cloud',
@@ -65,6 +76,7 @@ export const userApi = {
     getUserGames: (id: string | number) => api.get(`/api/users/${id}/games`),
     registerUser: (userData: any) => api.post('/api/users', userData),
     getUserRanking: (id: string | number) => api.get(`/api/users/${id}/ranking`),
+    updateUserProfile: (id: string | number, profileData: any) => api.put(`/api/users/${id}/profile`, profileData),
 }
 
 // Games related API calls
