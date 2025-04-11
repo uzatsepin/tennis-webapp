@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { gameApi } from '@/services/api'
+import { gameApi, userApi } from '@/services/api'
 import type { Game, User } from '@/services/api'
 
 export const useGameStore = defineStore('game', () => {
@@ -16,7 +16,7 @@ export const useGameStore = defineStore('game', () => {
 
         try {
             const response = await gameApi.getAllGames()
-            const allGames = response.data
+            const allGames = response.data.games || response.data
             games.value = limit ? allGames.slice(0, limit) : allGames
             return games.value
         } catch (err: any) {
@@ -34,18 +34,24 @@ export const useGameStore = defineStore('game', () => {
         try {
             const response = await gameApi.getPaginatedGames(params)
             return {
-                games: response.data.games,
-                total: response.data.total,
-                page: response.data.page,
-                pages: response.data.pages,
+                games: response.data.games || [],
+                total: response.data.pagination?.total || 0,
+                page: response.data.pagination?.page || 1,
+                pages: response.data.pagination?.pages || 1,
+                limit: response.data.pagination?.limit || 20,
+                hasNextPage: response.data.pagination?.hasNextPage || false,
+                hasPrevPage: response.data.pagination?.hasPrevPage || false,
             }
         } catch (err: any) {
             error.value = err.message || 'Помилка завантаження ігор'
             return {
                 games: [],
                 total: 0,
-                page: 0,
-                pages: 0,
+                page: 1,
+                pages: 1,
+                limit: 20,
+                hasNextPage: false,
+                hasPrevPage: false,
             }
         } finally {
             isLoading.value = false
@@ -110,10 +116,9 @@ export const useGameStore = defineStore('game', () => {
         error.value = null
 
         try {
-            const response = await gameApi.getAllGames()
-            return response.data.filter(
-                (game: Game) => game.player1Id.toString() === userId.toString() || game.player2Id.toString() === userId.toString(),
-            )
+            const response = await userApi.getUserGames(userId)
+
+            return response.data
         } catch (err: any) {
             error.value = err.message || 'Помилка отримання ігор користувача'
             return []

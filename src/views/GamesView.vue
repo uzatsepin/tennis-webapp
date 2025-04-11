@@ -11,7 +11,7 @@
         <div class="flex justify-between items-center mb-6">
           <div class="text-white">
             <h1 class="text-2xl font-bold">Тенісні ігри</h1>
-            <p class="text-blue-200 text-sm">Переглянути всі ігри</p>
+            <p class="text-blue-200 text-sm">{{ getHeaderSubtitle() }}</p>
           </div>
           <button
             @click="navigateToNewGame"
@@ -56,8 +56,62 @@
         </div>
       </div>
     </div>
+
     <!-- Content with proper margin to avoid overlap with tabs -->
-    <div class="mt-12">
+    <div class="mt-12" style="position: relative; z-index: 10">
+      <!-- Filter Button -->
+      <div class="mb-4">
+        <button
+          @click="toggleDateFilter"
+          class="w-full bg-white rounded-xl py-3 px-4 shadow-sm flex items-center justify-center text-blue-900 font-medium hover:bg-blue-50 transition-colors"
+        >
+          <Icon :icon="isFilterOpen ? 'mdi:filter-remove' : 'mdi:filter'" class="mr-2" />
+          {{ isFilterOpen ? "Приховати фільтр" : "Фільтр по даті" }}
+        </button>
+      </div>
+
+      <!-- Date Filter (Animated) -->
+      <transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform -translate-y-10 opacity-0"
+        enter-to-class="transform translate-y-0 opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100"
+        leave-to-class="transform -translate-y-10 opacity-0"
+      >
+        <div v-if="isFilterOpen" class="mb-5">
+          <div class="bg-white rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-medium text-gray-900">Фільтр за датою</h3>
+              <button
+                v-if="fromDate || toDate"
+                @click="clearDateFilter"
+                class="text-blue-600 text-sm hover:underline flex items-center"
+              >
+                <Icon icon="mdi:filter-remove" class="mr-1" />
+                Очистити
+              </button>
+            </div>
+            <DateRangePicker v-model:fromDate="fromDate" v-model:toDate="toDate" />
+          </div>
+        </div>
+      </transition>
+
+      <!-- Filter info -->
+      <div v-if="(fromDate || toDate) && !isLoading" class="mb-4">
+        <div class="bg-blue-50 rounded-lg p-3 text-sm text-blue-800 flex items-center">
+          <Icon icon="mdi:filter" class="mr-2" />
+          <span>
+            Фільтр за періодом:
+            <strong>{{ fromDate ? formatFilterDate(fromDate) : "початок" }}</strong> -
+            <strong>{{ toDate ? formatFilterDate(toDate) : "кінець" }}</strong>
+            <template v-if="totalGamesCount > 0"
+              >(знайдено {{ totalGamesCount }} ігор)</template
+            >
+          </span>
+        </div>
+      </div>
+
       <!-- Stats Summary (only for my games) -->
       <div
         v-if="activeTab === 'my' && currentUser && !isLoading"
@@ -85,7 +139,7 @@
 
       <!-- Empty State -->
       <div
-        v-else-if="filteredGames.length === 0"
+        v-else-if="games.length === 0 && !isLoading"
         class="bg-white rounded-xl shadow-sm p-8 text-center"
         style="position: relative; z-index: 10"
       >
@@ -95,6 +149,8 @@
           {{
             activeTab === "my"
               ? "У вас ще немає запланованих або завершених ігор."
+              : fromDate || toDate
+              ? "Не знайдено ігор у вибраному діапазоні дат."
               : "Поки що не знайдено ігор, що відповідають вашим критеріям."
           }}
         </p>
@@ -108,9 +164,9 @@
       </div>
 
       <!-- Game List -->
-      <div v-else class="space-y-4" style="position: relative; z-index: 10">
+      <div v-else class="space-y-4 mb-6" style="position: relative; z-index: 10">
         <div
-          v-for="game in filteredGames"
+          v-for="game in games"
           :key="game._id"
           class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
           @click="game._id && navigateToGameDetails(game._id)"
@@ -227,18 +283,66 @@
           </div>
         </div>
       </div>
+
+      <!-- Pagination -->
+      <div
+        v-if="totalPages > 1 && !isLoading"
+        class="flex justify-center items-center space-x-1 mt-8 mb-6"
+      >
+        <button
+          @click="changePage(currentPage - 1)"
+          :disabled="!hasPrevPage"
+          class="px-3 py-1 rounded-md flex items-center justify-center transition-colors"
+          :class="
+            !hasPrevPage
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-blue-900 hover:bg-blue-50'
+          "
+        >
+          <Icon icon="mdi:chevron-left" />
+        </button>
+
+        <button
+          v-for="page in displayedPages"
+          :key="page"
+          @click="changePage(page)"
+          class="px-3 py-1 rounded-md transition-colors min-w-[36px] text-center"
+          :class="
+            page === currentPage
+              ? 'bg-blue-900 text-white font-medium'
+              : 'hover:bg-blue-50 text-blue-900'
+          "
+        >
+          {{ page }}
+        </button>
+
+        <button
+          @click="changePage(currentPage + 1)"
+          :disabled="!hasNextPage"
+          class="px-3 py-1 rounded-md flex items-center justify-center transition-colors"
+          :class="
+            !hasNextPage
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-blue-900 hover:bg-blue-50'
+          "
+        >
+          <Icon icon="mdi:chevron-right" />
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useGameStore } from "@/stores/game";
 import { GameStatus, type Game } from "@/services/api";
 import { Icon } from "@iconify/vue";
 import TennisBallLoader from "@/components/TennisBallLoader.vue";
+import DateRangePicker from "@/components/game/DateRangePicker.vue";
+import { getStatusText } from "@/utils/utils";
 
 const router = useRouter();
 const gameStore = useGameStore();
@@ -247,8 +351,31 @@ const userStore = useUserStore();
 const games = ref<Game[]>([]);
 const isLoading = ref(true);
 const activeTab = ref("all"); // 'all', 'upcoming', 'past', 'my'
+const currentPage = ref(1);
+const totalPages = ref(1);
+const totalGamesCount = ref(0);
+const pageLimit = ref(10); // Games per page
+const hasNextPage = ref(false);
+const hasPrevPage = ref(false);
+const isFilterOpen = ref(false);
+
+// Фильтр по датам
+const fromDate = ref<string | null>(null);
+const toDate = ref<string | null>(null);
 
 const currentUser = computed(() => userStore.currentUser);
+
+// Переключение состояния фильтра
+const toggleDateFilter = () => {
+  isFilterOpen.value = !isFilterOpen.value;
+};
+
+// Очистка фильтра по датам
+const clearDateFilter = () => {
+  fromDate.value = null;
+  toDate.value = null;
+  loadGames(); // Перезагрузка данных без фильтров
+};
 
 const tabs = [
   { id: "all", name: "Усі ігри", icon: "mdi:tennis" },
@@ -257,17 +384,96 @@ const tabs = [
   { id: "my", name: "Мої ігри", icon: "mdi:account" },
 ];
 
-onMounted(async () => {
+// Pagination display logic
+const displayedPages = computed(() => {
+  if (totalPages.value <= 5) {
+    // If 5 or fewer pages, show all
+    return Array.from({ length: totalPages.value }, (_, i) => i + 1);
+  }
+
+  // Always show current page, 2 before and 2 after if possible
+  const pages = [];
+
+  // Start from max(1, currentPage - 2)
+  const start = Math.max(1, Math.min(currentPage.value - 2, totalPages.value - 4));
+
+  // Show 5 pages in total
+  for (let i = 0; i < 5; i++) {
+    if (start + i <= totalPages.value) {
+      pages.push(start + i);
+    }
+  }
+
+  return pages;
+});
+
+// Загрузка игр с сервера с новой пагинацией
+const loadGames = async () => {
   isLoading.value = true;
   try {
-    await gameStore.loadAllGames();
-    games.value = gameStore.games;
+    let params: any = {
+      page: currentPage.value,
+      limit: pageLimit.value
+    };
+
+    // Add status filter based on active tab
+    if (activeTab.value === "upcoming") {
+      params.status = [GameStatus.PENDING, GameStatus.SCHEDULED].join(',');
+    } else if (activeTab.value === "past") {
+      params.status = GameStatus.COMPLETED;
+    } else if (activeTab.value === "my" && currentUser.value) {
+      params.playerId = currentUser.value.id;
+    }
+
+    // Add date filters if set
+    if (fromDate.value) {
+      params.fromDate = fromDate.value;
+    }
+
+    if (toDate.value) {
+      params.toDate = toDate.value;
+    }
+
+    const result = await gameStore.loadPaginatedGames(params);
+
+    games.value = result.games;
+    totalPages.value = result.pages;
+    currentPage.value = result.page;
+    totalGamesCount.value = result.total;
+    hasNextPage.value = result.hasNextPage;
+    hasPrevPage.value = result.hasPrevPage;
+    pageLimit.value = result.limit;
+
+    // Загрузить статистику для вкладки "мои игры"
+    if (activeTab.value === 'my' && currentUser.value) {
+      await fetchMyGamesStats();
+    }
+
   } catch (error) {
     console.error("Помилка завантаження ігор:", error);
   } finally {
     isLoading.value = false;
   }
+};
+
+// Следим за изменениями вкладок, фильтров и номера страницы
+watch([activeTab, fromDate, toDate, currentPage], () => {
+  loadGames();
+}, { immediate: false });
+
+onMounted(() => {
+  loadGames();
 });
+
+// Change page with validation
+const changePage = (page: number) => {
+  if ((page > currentPage.value && hasNextPage.value) ||
+      (page < currentPage.value && hasPrevPage.value) ||
+      (page >= 1 && page <= totalPages.value && page !== currentPage.value)) {
+    currentPage.value = page;
+    // loadGames будет вызван через watcher
+  }
+};
 
 // Header subtitle based on active tab
 const getHeaderSubtitle = () => {
@@ -285,9 +491,12 @@ const getHeaderSubtitle = () => {
   }
 };
 
-// Set active tab with smooth animation
-const setActiveTab = (tabId:string) => {
-  activeTab.value = tabId;
+// Set active tab with smooth animation and reset pagination
+const setActiveTab = (tabId: string) => {
+  if (activeTab.value !== tabId) {
+    activeTab.value = tabId;
+    currentPage.value = 1; // Reset to first page when changing tabs
+  }
 };
 
 const navigateToNewGame = () => {
@@ -304,54 +513,50 @@ const navigateToGameResult = (gameId: string | undefined) => {
   }
 };
 
-const filteredGames = computed(() => {
-  if (activeTab.value === "all") {
-    return games.value;
-  } else if (activeTab.value === "upcoming") {
-    return games.value.filter(
-      (game) => game.status === GameStatus.PENDING || game.status === GameStatus.SCHEDULED
-    );
-  } else if (activeTab.value === "past") {
-    return games.value.filter((game) => game.status === GameStatus.COMPLETED);
-  } else if (activeTab.value === "my") {
-    if (!currentUser.value) return [];
-    return games.value.filter(
-      (game) =>
-        game.player1Id === currentUser.value?.id || game.player2Id === currentUser.value?.id
-    );
-  }
-  return games.value;
-});
-
 // Statistics for my games tab
-const myGamesCount = computed(() => {
-  if (!currentUser.value) return 0;
-  return games.value.filter(
-    (game) =>
-      game.player1Id === currentUser.value?.id || game.player2Id === currentUser.value?.id
-  ).length;
+const myGamesStats = ref({
+  total: 0,
+  wins: 0,
+  percentage: 0
 });
 
-const myWinsCount = computed(() => {
-  if (!currentUser.value) return 0;
-  return games.value.filter(
-    (game) =>
-      game.status === GameStatus.COMPLETED && game.winnerId === currentUser.value?.id
-  ).length;
-});
+// Загрузка статистики "моих игр"
+const fetchMyGamesStats = async () => {
+  if (!currentUser.value || activeTab.value !== 'my') return;
 
-const winPercentage = computed(() => {
-  if (myGamesCount.value === 0) return 0;
-  const completedGames = games.value.filter(
-    (game) =>
-      game.status === GameStatus.COMPLETED &&
-      (game.player1Id === currentUser.value?.id ||
-        game.player2Id === currentUser.value?.id)
-  ).length;
+  try {
+    const params = {
+      playerId: currentUser.value.id,
+      statsOnly: true
+    };
 
-  if (completedGames === 0) return 0;
-  return Math.round((myWinsCount.value / completedGames) * 100);
-});
+    const stats = await gameStore.loadPaginatedGames(params);
+
+    // Extract stats safely with defaults
+    myGamesStats.value = {
+      total: stats.total || 0,
+      wins: (stats as any).wins || 0,
+      percentage: (stats as any).winPercentage || 0
+    };
+  } catch (error) {
+    console.error("Помилка завантаження статистики:", error);
+  }
+};
+
+// Computed properties for my games statistics
+const myGamesCount = computed(() => myGamesStats.value.total);
+const myWinsCount = computed(() => myGamesStats.value.wins);
+const winPercentage = computed(() => myGamesStats.value.percentage);
+
+// Форматирование даты для фильтра
+const formatFilterDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("uk-UA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
+};
 
 const formatDate = (dateString: string | Date) => {
   const date = new Date(dateString);
@@ -366,23 +571,6 @@ const formatDate = (dateString: string | Date) => {
 
 const isWinner = (game: Game, playerId: string | number) => {
   return game.status === GameStatus.COMPLETED && game.winnerId === playerId;
-};
-
-const getStatusText = (status:GameStatus) => {
-  switch (status) {
-    case GameStatus.PENDING:
-      return "очікує підтвердження";
-    case GameStatus.SCHEDULED:
-      return "заплановано";
-    case GameStatus.COMPLETED:
-      return "завершено";
-    case GameStatus.CANCELLED:
-      return "скасовано";
-    case GameStatus.REJECTED:
-      return "відхилено";
-    default:
-      return "чернетка";
-  }
 };
 
 const getStatusIcon = (status:GameStatus) => {

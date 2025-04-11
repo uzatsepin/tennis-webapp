@@ -10,7 +10,12 @@
         {{ username.charAt(0).toUpperCase() }}
       </span>
     </div>
-    <p class="font-medium text-gray-900 mb-1 text-center">@{{ username }}</p>
+    <p
+      class="font-medium text-gray-900 mb-1 text-center max-w-[154px] truncate"
+      :title="'@' + username"
+    >
+      @{{ username }}
+    </p>
     <p class="text-sm text-center">{{ playerName }} {{ playerSurname }}</p>
     <p v-if="isCurrentUser" class="text-xs text-blue-900">Ви</p>
     <div v-if="isWinner" class="mt-2 flex items-center text-green-600">

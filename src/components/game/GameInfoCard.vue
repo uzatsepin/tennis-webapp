@@ -11,7 +11,7 @@
       </GameInfoItem>
 
       <GameInfoItem icon="mdi:account-multiple" title="Гравці">
-        {{ game.player1Username }} vs {{ game.player2Username }}
+        @{{ game.player1Username }} vs @{{ game.player2Username }}
       </GameInfoItem>
 
       <GameInfoItem icon="mdi:flag" title="Статус">
@@ -44,6 +44,7 @@ import { Icon } from "@iconify/vue";
 import { computed } from "vue";
 import { GameStatus } from "@/services/api";
 import GameInfoItem from "./GameInfoItem.vue";
+import { getStatusText } from "@/utils/utils";
 
 const props = defineProps<{
   game: {
@@ -79,22 +80,5 @@ const formatDate = (dateString: string | undefined, includeWeekday = false) => {
   }
 
   return date.toLocaleDateString("uk-UA", options);
-};
-
-const getStatusText = (status: GameStatus) => {
-  switch (status) {
-    case GameStatus.PENDING:
-      return "очікує підтвердження";
-    case GameStatus.SCHEDULED:
-      return "заплановано";
-    case GameStatus.COMPLETED:
-      return "завершено";
-    case GameStatus.CANCELLED:
-      return "скасовано";
-    case GameStatus.REJECTED:
-      return "відхилено";
-    default:
-      return "чернетка";
-  }
 };
 </script>

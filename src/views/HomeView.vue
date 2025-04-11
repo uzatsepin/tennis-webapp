@@ -311,6 +311,7 @@ import { useRankingStore } from "@/stores/ranking";
 import { GameStatus } from "@/services/api";
 import type { Game, Ranking } from "@/services/api";
 import { Icon } from "@iconify/vue";
+import { getStatusText } from "@/utils/utils";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -360,16 +361,18 @@ onMounted(async () => {
 
   try {
     // Load recent games
-    await gameStore.loadAllGames();
+    await gameStore.loadAllGames(5);
     recentGames.value = gameStore.games.slice(0, 5);
 
     // Load top players
     await rankingStore.loadRankings();
     topPlayers.value = rankingStore.rankings.slice(0, 5);
 
-    // Load user ranking if user is authenticated
+    // Get user ranking from the already loaded rankings if user is authenticated
     if (userStore.currentUser) {
-      userRanking.value = await rankingStore.getUserRanking(userStore.currentUser.id);
+      userRanking.value = rankingStore.rankings.find(
+        (rank) => rank.userId?.toString() === userStore.currentUser?.id?.toString()
+      );
     }
   } catch (error) {
     console.error("Error loading home page data:", error);
@@ -391,23 +394,6 @@ const formatDate = (dateString: string | Date) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-};
-
-const getStatusText = (status: GameStatus): string => {
-  switch (status) {
-    case GameStatus.PENDING:
-      return "очікує підтвердження";
-    case GameStatus.SCHEDULED:
-      return "заплановано";
-    case GameStatus.COMPLETED:
-      return "завершено";
-    case GameStatus.CANCELLED:
-      return "скасовано";
-    case GameStatus.REJECTED:
-      return "відхилено";
-    default:
-      return "чернетка";
-  }
 };
 </script>
 

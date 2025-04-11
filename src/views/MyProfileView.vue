@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Hero Banner -->
-    <div class="relative mb-16">
+    <div class="relative mb-10">
       <div
         class="absolute inset-0 bg-gradient-to-r from-blue-900 to-indigo-900 h-32 -mx-4 rounded-b-3xl z-0"
       ></div>
@@ -652,6 +652,7 @@ import { GameStatus, type Game } from "@/services/api";
 import { Icon } from "@iconify/vue";
 import TennisBallLoader from "@/components/TennisBallLoader.vue";
 import Chart from 'chart.js/auto';
+import { getStatusText } from "@/utils/utils";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -783,23 +784,6 @@ const formatDate = (dateString: string | number | Date) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-};
-
-const getStatusText = (status:GameStatus) => {
-  switch (status) {
-    case GameStatus.PENDING:
-      return "очікує підтвердження";
-    case GameStatus.SCHEDULED:
-      return "заплановано";
-    case GameStatus.COMPLETED:
-      return "завершено";
-    case GameStatus.CANCELLED:
-      return "скасовано";
-    case GameStatus.REJECTED:
-      return "відхилено";
-    default:
-      return "чернетка";
-  }
 };
 
 const isWinner = (game:Game, playerId:string | number) => {
