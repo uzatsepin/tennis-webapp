@@ -1,59 +1,68 @@
 <template>
   <div>
     <!-- AppHeaderSimple with proper spacing and tab positioning -->
-    <AppHeader
-      title="Тенісні ігри"
-      :subtitle="getHeaderSubtitle()"
-      :showBackButton="$route.path !== '/games'"
-    >
-      <!-- Action button in header -->
-      <template #actions>
-        <button
-          @click="navigateToNewGame"
-          class="bg-white text-blue-900 px-4 py-2 rounded-lg font-medium text-sm flex items-center shadow-md hover:bg-blue-50 transition-colors"
-        >
-          <Icon icon="mdi:plus" class="mr-2" />
-          <span>Нова гра</span>
-        </button>
-      </template>
+    <div class="relative mb-6">
+      <div
+        class="absolute inset-0 bg-gradient-to-r from-blue-900 to-indigo-900 h-48 sm:h-56 -mx-4 rounded-b-3xl"
+      ></div>
+
+      <div class="relative pt-4 px-1">
+        <!-- Header with Back Button and Title -->
+        <div class="flex justify-between items-center mb-6">
+          <div class="text-white">
+            <h1 class="text-2xl font-bold">Тенісні ігри</h1>
+            <p class="text-blue-200 text-sm">Переглянути всі ігри</p>
+          </div>
+          <button
+            @click="navigateToNewGame"
+            class="bg-white text-blue-900 px-4 py-2 rounded-lg font-medium text-sm flex items-center shadow-md hover:bg-blue-50 transition-colors"
+          >
+            <Icon icon="mdi:plus" class="mr-2" />
+            <span>Нова гра</span>
+          </button>
+        </div>
+      </div>
 
       <!-- Tabs in header -->
-      <template #tabs>
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div class="overflow-x-auto scrollbar-hide -mx-1 px-1">
-            <div class="flex min-w-full">
-              <button
-                v-for="tab in tabs"
-                :key="tab.id"
-                @click="setActiveTab(tab.id)"
-                class="flex-1 min-w-[90px] py-3 px-2 text-center text-sm font-medium whitespace-nowrap transition-all relative"
-                :class="[
-                  activeTab === tab.id
-                    ? 'text-blue-900 bg-blue-50'
-                    : 'text-gray-600 hover:bg-gray-50',
-                ]"
-              >
-                <div class="flex justify-center items-center">
-                  <Icon :icon="tab.icon" class="mr-1" />
-                  <span class="max-w-[80px] truncate">{{ tab.name }}</span>
-                </div>
-                <div
-                  v-if="activeTab === tab.id"
-                  class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-900"
-                ></div>
-              </button>
-            </div>
+      <div
+        class="bg-white rounded-xl shadow-lg mt-4"
+        style="position: relative; z-index: 10"
+      >
+        <div class="overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <div class="flex min-w-full">
+            <button
+              v-for="(tab, index) in tabs"
+              :key="tab.id"
+              @click="setActiveTab(tab.id)"
+              class="flex-1 min-w-[90px] py-3 px-2 text-center text-sm font-medium whitespace-nowrap transition-all relative"
+              :class="[
+                activeTab === tab.id
+                  ? 'text-blue-900 bg-blue-50'
+                  : 'text-gray-600 hover:bg-gray-50',
+                index === 0 ? 'rounded-l-xl' : '',
+                index === tabs.length - 1 ? 'rounded-r-xl' : '',
+              ]"
+            >
+              <div class="flex justify-center items-center">
+                <Icon :icon="tab.icon" class="mr-1" />
+                <span class="max-w-[80px] truncate">{{ tab.name }}</span>
+              </div>
+              <div
+                v-if="activeTab === tab.id"
+                class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-900"
+              ></div>
+            </button>
           </div>
         </div>
-      </template>
-    </AppHeader>
-
+      </div>
+    </div>
     <!-- Content with proper margin to avoid overlap with tabs -->
-    <div class="mt-16">
+    <div class="mt-12">
       <!-- Stats Summary (only for my games) -->
       <div
         v-if="activeTab === 'my' && currentUser && !isLoading"
         class="grid grid-cols-3 gap-3 mb-5"
+        style="position: relative; z-index: 10"
       >
         <div class="bg-white rounded-xl p-4 shadow-sm">
           <p class="text-gray-500 text-xs mb-1">Усього</p>
@@ -78,6 +87,7 @@
       <div
         v-else-if="filteredGames.length === 0"
         class="bg-white rounded-xl shadow-sm p-8 text-center"
+        style="position: relative; z-index: 10"
       >
         <Icon icon="mdi:tennis-ball-off" class="text-5xl text-gray-300 mx-auto mb-3" />
         <h3 class="text-lg font-medium text-gray-900 mb-1">Немає ігор</h3>
@@ -98,7 +108,7 @@
       </div>
 
       <!-- Game List -->
-      <div v-else class="space-y-4">
+      <div v-else class="space-y-4" style="position: relative; z-index: 10">
         <div
           v-for="game in filteredGames"
           :key="game._id"
@@ -229,7 +239,6 @@ import { useGameStore } from "@/stores/game";
 import { GameStatus, type Game } from "@/services/api";
 import { Icon } from "@iconify/vue";
 import TennisBallLoader from "@/components/TennisBallLoader.vue";
-import AppHeader from "@/components/AppHeader.vue";
 
 const router = useRouter();
 const gameStore = useGameStore();

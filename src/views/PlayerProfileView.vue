@@ -105,7 +105,9 @@
 
         <!-- Player Details -->
         <div v-if="hasAdditionalInfo" class="mt-6 border-t border-gray-100 pt-4">
-          <h3 class="font-medium text-gray-900 mb-3">Інформація про гравця</h3>
+          <h3 v-if="hasBaseAdditionalInfo" class="font-medium text-gray-900 mb-3">
+            Інформація про гравця
+          </h3>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div v-if="player.age" class="text-sm">
               <p class="text-gray-500">Вік</p>
@@ -128,7 +130,9 @@
           </div>
         </div>
 
-        <h3 class="font-medium text-gray-900 mt-4">Статистика гравця</h3>
+        <h3 class="font-medium text-gray-900" :class="{ 'mt-4': hasBaseAdditionalInfo }">
+          Статистика гравця
+        </h3>
         <!-- Player Stats Quick View -->
         <div class="mt-4 grid grid-cols-3 gap-3">
           <div
@@ -363,227 +367,255 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, type Ref, nextTick, onBeforeUnmount } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useUserStore } from "@/stores/user";
-import { useGameStore } from "@/stores/game";
-import { GameStatus } from "@/services/api";
-import { Icon } from "@iconify/vue";
-import TennisBallLoader from "@/components/TennisBallLoader.vue";
+import { ref, onMounted, computed, watch, type Ref, nextTick, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useUserStore, type UserDisplay } from '@/stores/user'
+import { useGameStore } from '@/stores/game'
+import { GameStatus, type User } from '@/services/api'
+import { Icon } from '@iconify/vue'
+import TennisBallLoader from '@/components/TennisBallLoader.vue'
 
 interface Player {
-  _id: string;
-  id: string;
-  username: string;
-  firstName?: string;
-  lastName?: string;
-  rating: number;
-  photo?: string;
-  age?: number;
-  forehand?: string;
-  height?: number;
-  weight?: number;
+    _id: string
+    id: string
+    username: string
+    firstName?: string
+    lastName?: string
+    rating: number
+    photo?: string
+    age?: number
+    forehand?: string
+    height?: number
+    weight?: number
+    telegramId: string
 }
 
 interface Game {
-  _id: string;
-  player1Id: string;
-  player2Id: string;
-  player1Username: string;
-  player2Username: string;
-  scheduledTime: string;
-  status: GameStatus;
-  score?: string;
-  winnerId?: string;
-  createdAt: string;
+    _id: string
+    player1Id: string
+    player2Id: string
+    player1Username: string
+    player2Username: string
+    scheduledTime: string
+    status: GameStatus
+    score?: string
+    winnerId?: string
+    createdAt: string
 }
 
 interface RatingHistory {
-  date: string;
-  rating: number;
-  gameId?: string;
+    date: string
+    rating: number
+    gameId?: string
 }
 
 interface PlayerRanking {
-  position: number;
-  userId: string;
-  username: string;
-  points: number;
-  history: RatingHistory[];
+    position: number
+    userId: string
+    username: string
+    points: number
+    history: RatingHistory[]
 }
 
 interface CurrentStreak {
-  isWin: boolean;
-  count: number;
+    isWin: boolean
+    count: number
 }
 
-const route = useRoute();
-const router = useRouter();
-const userStore = useUserStore();
-const gameStore = useGameStore();
+const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
+const gameStore = useGameStore()
 
-const player = ref<Player | null>(null);
-const playerGames = ref<Game[]>([]);
-const playerRanking = ref<PlayerRanking | null>(null);
-const isLoading = ref(true);
-const errorMessage = ref("");
+const player = ref<UserDisplay | null>(null)
+const playerGames = ref<Game[]>([])
+const playerRanking = ref<PlayerRanking | null>(null)
+const isLoading = ref(true)
+const errorMessage = ref('')
 
-const activeTab = ref("stats");
+const activeTab = ref('stats')
 
 const tabs = [
-  { id: "stats", name: "Статистика", icon: "mdi:chart-box" },
-  { id: "games", name: "Ігри", icon: "mdi:tennis" },
-  { id: "history", name: "Історія", icon: "mdi:history" }
-];
+    { id: 'stats', name: 'Статистика', icon: 'mdi:chart-box' },
+    { id: 'games', name: 'Ігри', icon: 'mdi:tennis' },
+    { id: 'history', name: 'Історія', icon: 'mdi:history' },
+]
 
 // Check if viewing the current user's profile
 const isCurrentUser = computed(() => {
-  return userStore.currentUser && player.value &&
-         String(userStore.currentUser.id) === String(player.value.id);
-});
+    return userStore.currentUser && player.value && String(userStore.currentUser.id) === String(player.value.id)
+})
 
-// Check if player has any additional info to display
+const hasBaseAdditionalInfo = computed(() => {
+    return !!(player.value?.age || player.value?.forehand || player.value?.height || player.value?.weight)
+})
+
 const hasAdditionalInfo = computed(() => {
-  return !!(
-    player.value?.firstName ||
-    player.value?.lastName ||
-    player.value?.age ||
-    player.value?.forehand ||
-    player.value?.height ||
-    player.value?.weight
-  );
-});
+    return !!(
+        player.value?.firstName ||
+        player.value?.lastName ||
+        player.value?.age ||
+        player.value?.forehand ||
+        player.value?.height ||
+        player.value?.weight
+    )
+})
 
 onMounted(async () => {
-  isLoading.value = true;
-  const playerId = route.params.id as string;
+    isLoading.value = true
+    const playerId = route.params.id as string
 
-  try {
-    // Load player data
-    const userData = await userStore.getUserById(playerId);
+    try {
+        // Load player data
+        const userData = await userStore.getUserById(playerId)
 
-    if (!userData) {
-      errorMessage.value = "Гравець не знайдений";
-      return;
+        if (!userData) {
+            errorMessage.value = 'Гравець не знайдений'
+            return
+        }
+
+        // Map userData to match the Player interface structure
+        player.value = {
+            id: userData.id,
+            username: userData.username,
+            firstName: userData.name?.split(' ')[0] || undefined,
+            lastName: userData.name?.split(' ')[1] || undefined,
+            rating: userData.rating,
+            age: userData.age,
+            forehand: userData.forehand,
+            height: userData.height,
+            weight: userData.weight,
+            telegramId: userData.telegramId,
+            gameLost: userData.gameLost,
+            gamesWon: userData.gamesWon,
+            name: userData.name
+        }
+
+        // Load player games
+        const games = await gameStore.getUserGames(playerId)
+        playerGames.value = games
+
+        // Load player ranking
+        const ranking = await userStore.getUserRanking(playerId)
+        playerRanking.value = ranking
+    } catch (error) {
+        console.error('Error loading player data:', error)
+        errorMessage.value = 'Помилка завантаження даних гравця'
+    } finally {
+        isLoading.value = false
     }
-
-    // Map userData to match the Player interface structure
-    player.value = {
-      _id: userData.id,
-      id: userData.id,
-      username: userData.username,
-      firstName: userData.name?.split(' ')[0] || undefined,
-      lastName: userData.name?.split(' ')[1] || undefined,
-      rating: userData.rating,
-      age: userData.age,
-      forehand: userData.forehand,
-      height: userData.height,
-      weight: userData.weight,
-    };
-
-    // Load player games
-    const games = await gameStore.getUserGames(playerId);
-    playerGames.value = games;
-
-    // Load player ranking
-    const ranking = await userStore.getUserRanking(playerId);
-    playerRanking.value = ranking;
-  } catch (error) {
-    console.error("Error loading player data:", error);
-    errorMessage.value = "Помилка завантаження даних гравця";
-  } finally {
-    isLoading.value = false;
-  }
-});
-
+})
 
 // Computed properties for data display
 const completedGames = computed(() => {
-  return playerGames.value.filter(game => game.status === GameStatus.COMPLETED);
-});
+    return playerGames.value.filter((game) => game.status === GameStatus.COMPLETED)
+})
 
 const upcomingGames = computed(() => {
-  return playerGames.value.filter(game =>
-    game.status === GameStatus.PENDING ||
-    game.status === GameStatus.SCHEDULED
-  );
-});
+    return playerGames.value.filter((game) => game.status === GameStatus.PENDING || game.status === GameStatus.SCHEDULED)
+})
 
 const gamesWon = computed(() => {
-  if (!completedGames.value.length || !player.value) return 0;
-  return completedGames.value.filter(game => game.winnerId === player.value?.id).length;
-});
+    if (!completedGames.value.length || !player.value) return 0
+    return completedGames.value.filter((game) => game.winnerId === player.value?.id).length
+})
 
 const winRate = computed(() => {
-  if (!completedGames.value.length) return 0;
-  return (gamesWon.value / completedGames.value.length) * 100;
-});
+    if (!completedGames.value.length) return 0
+    return (gamesWon.value / completedGames.value.length) * 100
+})
 
 const currentStreak = computed((): CurrentStreak => {
-  if (!completedGames.value.length || !player.value) {
-    return { isWin: false, count: 0 };
-  }
-
-  // Sort games by date (newest first)
-  const sortedGames = [...completedGames.value].sort(
-    (a, b) => new Date(b.scheduledTime).getTime() - new Date(a.scheduledTime).getTime()
-  );
-
-  const firstGameWon = sortedGames[0].winnerId === player.value?.id;
-  let count = 1;
-
-  // Count consecutive wins or losses
-  for (let i = 1; i < sortedGames.length; i++) {
-    const isWin = sortedGames[i].winnerId === player.value?.id;
-    if (isWin === firstGameWon) {
-      count++;
-    } else {
-      break;
+    if (!completedGames.value.length || !player.value) {
+        return { isWin: false, count: 0 }
     }
-  }
 
-  return { isWin: firstGameWon, count };
-});
+    // Sort games by date (newest first)
+    const sortedGames = [...completedGames.value].sort((a, b) => new Date(b.scheduledTime).getTime() - new Date(a.scheduledTime).getTime())
+
+    const firstGameWon = Number(sortedGames[0].winnerId) === player.value?.telegramId
+    let count = 1
+
+    // Count consecutive wins or losses
+    for (let i = 1; i < sortedGames.length; i++) {
+        const isWin = Number(sortedGames[i].winnerId) === player.value?.telegramId
+        if (isWin === firstGameWon) {
+            count++
+        } else {
+            break
+        }
+    }
+
+    return { isWin: firstGameWon, count }
+})
 
 // Helper functions
 const formatDate = (dateString: string): string => {
-  if (!dateString) return "—";
+    if (!dateString) return '—'
 
-  const date = new Date(dateString);
-  return date.toLocaleDateString("uk-UA", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
+    const date = new Date(dateString)
+    return date.toLocaleDateString('uk-UA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    })
+}
 
 const getOpponentName = (game: Game): string => {
-  if (!player.value) return "";
+    if (!player.value) return ''
 
-  if (game.player1Id === player.value.id) {
-    return game.player2Username;
-  } else {
-    return game.player1Username;
-  }
-};
+    if (Number(game.player1Id) === player.value.telegramId) {
+        return game.player2Username
+    } else {
+        return game.player1Username
+    }
+}
 
 const isWinner = (game: Game): boolean => {
-  if (!player.value) return false;
-  return game.winnerId === player.value.id;
-};
+    if (!player.value) return false
+    return Number(game.winnerId) === player.value.telegramId
+}
 
 const formatScore = (game: Game): string => {
-  if (!game.score) return "—";
-  return game.score;
-};
+    if (!game.score) return '—'
+    return game.score
+}
 
-const navigateToChallengePlayer = () => {
+const navigateToChallengePlayer = async () => {
   if (!player.value) return;
 
-  router.push({
-    path: "/games/new",
-    query: { opponent: player.value.id },
-  });
+  try {
+    // Find the player in the users list by their ID to ensure we have complete data
+    await userStore.loadAllUsers();
+    const playerToChallenge = userStore.allUsers.find(u => u.id === player.value?.id);
+
+    if (playerToChallenge) {
+      // Properly format the user object for the game store
+      const opponent = {
+        _id: playerToChallenge.id.toString(),
+        telegramId: Number(playerToChallenge.id),
+        username: playerToChallenge.username,
+        firstName: playerToChallenge.firstName || playerToChallenge.username,
+        lastName: playerToChallenge.lastName,
+        points: playerToChallenge.rating || 0,
+        gamesWon: playerToChallenge.gamesWon || 0,
+        gamesLost: playerToChallenge.gameLost || 0,
+        gamesPlayed: (playerToChallenge.gamesWon || 0) + (playerToChallenge.gameLost || 0),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      // Set the selected opponent in the game store
+      gameStore.selectOpponent(opponent);
+
+      // Navigate to the new game page
+      router.push('/games/new');
+    } else {
+      console.error('Could not find opponent in user list');
+    }
+  } catch (error) {
+    console.error('Error selecting opponent:', error);
+  }
 };
 </script>
 

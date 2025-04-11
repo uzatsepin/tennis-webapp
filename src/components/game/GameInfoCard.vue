@@ -32,7 +32,7 @@
         {{ game.score }}
       </GameInfoItem>
 
-      <GameInfoItem icon="mdi:clock-time-four" title="Створено">
+      <GameInfoItem icon="mdi:clock-time-four" title="Створено" :isLast="true">
         {{ formatDate(game.createdAt) }}
       </GameInfoItem>
     </ul>

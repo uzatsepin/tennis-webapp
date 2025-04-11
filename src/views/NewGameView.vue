@@ -133,7 +133,7 @@ const currentUser = computed(() => {
     firstName: userStore.currentUser.firstName || userStore.currentUser.username,
     points: userStore.currentUser.rating || 0,
     gamesWon: userStore.currentUser.gamesWon || 0,
-    gamesLost: userStore.currentUser.gamesLost || 0,
+    gamesLost: userStore.currentUser.gameLost || 0,
     gamesPlayed: userStore.currentUser.gamesPlayed || 0,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -163,9 +163,6 @@ const filteredUsers = computed(() => {
 onMounted(async () => {
   isLoading.value = true;
   try {
-    // Clear any previously selected opponent
-    gameStore.clearOpponent();
-
     // Load all users
     await userStore.loadAllUsers();
     allUsers.value = userStore.allUsers.map((user) => ({
@@ -176,19 +173,30 @@ onMounted(async () => {
       lastName: user.lastName,
       points: user.rating || 0,
       gamesWon: user.gamesWon || 0,
-      gamesLost: user.gamesLost || 0,
+      gamesLost: user.gameLost || 0,
       gamesPlayed: user.gamesPlayed || 0,
       createdAt: new Date(),
       updatedAt: new Date(),
       rating: user.rating,
     }));
 
-    // Check if opponent ID was provided in the query
-    const opponentId = route.query.opponent as string;
-    if (opponentId) {
-      const opponent = allUsers.value.find((user) => user._id === opponentId);
-      if (opponent) {
-        handleSelectOpponent(opponent);
+    // First check if there's a selected opponent in the store
+    if (gameStore.selectedOpponent) {
+      const opponent = gameStore.selectedOpponent;
+      formData.value.player2Id = opponent.telegramId.toString();
+      searchQuery.value = opponent.username;
+    } else {
+      // If not, check if opponent ID was provided in the query
+      const opponentId = route.query.opponent as string;
+      if (opponentId) {
+        const opponent = allUsers.value.find(
+          (user) => user._id === opponentId || user.telegramId.toString() === opponentId
+        );
+        if (opponent) {
+          gameStore.selectOpponent(opponent);
+          formData.value.player2Id = opponent.telegramId.toString();
+          searchQuery.value = opponent.username;
+        }
       }
     }
   } catch (error) {
@@ -201,18 +209,14 @@ onMounted(async () => {
 
 // Handle opponent selection using the game store
 const handleSelectOpponent = (user: User) => {
-  // Use the store function to get the correct ID
-  const opponentId = gameStore.selectedOpponent?.telegramId.toString();
+  gameStore.selectOpponent(user);
 
-  if (opponentId) {
-    formData.value.player2Id = opponentId;
+  if (gameStore.selectedOpponent) {
+    formData.value.player2Id = gameStore.selectedOpponent.telegramId.toString();
     searchQuery.value = user.username;
     showUserDropdown.value = false;
-
-    console.log("Selected opponent:", user);
-    console.log("Opponent ID set to:", formData.value.player2Id);
   } else {
-    console.error("Failed to get valid ID from opponent");
+    console.error("Failed to select opponent");
     errorMessage.value = "Помилка вибору суперника";
   }
 };
@@ -280,8 +284,6 @@ const handleSubmit = async () => {
       player2Id: gameStore.selectedOpponent?.telegramId,
       scheduledTime,
     };
-
-    console.log("Creating game with data:", gameData);
 
     // Send POST request to create a game
     const newGame = await gameStore.createGame(gameData);

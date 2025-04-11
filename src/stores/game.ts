@@ -17,12 +17,36 @@ export const useGameStore = defineStore('game', () => {
         try {
             const response = await gameApi.getAllGames()
             const allGames = response.data
-            // Если указан лимит, ограничиваем количество игр
             games.value = limit ? allGames.slice(0, limit) : allGames
             return games.value
         } catch (err: any) {
             error.value = err.message || 'Помилка завантаження ігор'
             return []
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    async function loadPaginatedGames(params = {}) {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const response = await gameApi.getPaginatedGames(params)
+            return {
+                games: response.data.games,
+                total: response.data.total,
+                page: response.data.page,
+                pages: response.data.pages,
+            }
+        } catch (err: any) {
+            error.value = err.message || 'Помилка завантаження ігор'
+            return {
+                games: [],
+                total: 0,
+                page: 0,
+                pages: 0,
+            }
         } finally {
             isLoading.value = false
         }
@@ -67,7 +91,6 @@ export const useGameStore = defineStore('game', () => {
         try {
             const response = await gameApi.updateGameResult(id, resultData)
 
-            // Обновление игры в списке
             const index = games.value.findIndex((game) => game._id === id)
             if (index !== -1) {
                 games.value[index] = response.data
@@ -106,7 +129,6 @@ export const useGameStore = defineStore('game', () => {
         try {
             const response = await gameApi.confirmGame(id)
 
-            // Обновление игры в списке
             const index = games.value.findIndex((game) => game._id === id)
             if (index !== -1) {
                 games.value[index] = response.data
@@ -128,7 +150,6 @@ export const useGameStore = defineStore('game', () => {
         try {
             const response = await gameApi.rejectGame(id)
 
-            // Обновление игры в списке
             const index = games.value.findIndex((game) => game._id === id)
             if (index !== -1) {
                 games.value[index] = response.data
@@ -148,8 +169,22 @@ export const useGameStore = defineStore('game', () => {
             selectedOpponent.value = null
             return null
         }
-        selectedOpponent.value = user
-        return null
+
+        selectedOpponent.value = {
+            _id: user._id || user.telegramId.toString(),
+            telegramId: Number(user.telegramId),
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            points: user.points || user.rating || 0,
+            gamesWon: user.gamesWon || 0,
+            gamesLost: user.gamesLost || 0,
+            gamesPlayed: user.gamesPlayed || 0,
+            createdAt: user.createdAt || new Date(),
+            updatedAt: user.updatedAt || new Date(),
+        }
+
+        return selectedOpponent.value
     }
 
     function clearOpponent() {
@@ -163,6 +198,7 @@ export const useGameStore = defineStore('game', () => {
         isLoading,
         error,
         loadAllGames,
+        loadPaginatedGames,
         getGameById,
         createGame,
         updateGameResult,

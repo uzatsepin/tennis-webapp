@@ -24,6 +24,10 @@ export interface User {
     createdAt: Date
     updatedAt: Date
     rating?: number
+    age?: number
+    forehand?: string
+    height?: number
+    weight?: number
 }
 
 export interface Game {
@@ -82,6 +86,7 @@ export const userApi = {
 // Games related API calls
 export const gameApi = {
     getAllGames: () => api.get('/api/games'),
+    getPaginatedGames: (params: any) => api.get('/api/games', { params }),
     getGameById: (id: string) => api.get(`/api/games/${id}`),
     createGame: (gameData: any) => api.post('/api/games', gameData),
     updateGameResult: (id: string, resultData: any) => api.put(`/api/games/${id}/results`, resultData),

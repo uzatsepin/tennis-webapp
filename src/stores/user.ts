@@ -27,11 +27,12 @@ export interface UserDisplay {
     photo?: string
     gamesPlayed?: number
     gamesWon?: number
-    gamesLost?: number
+    gameLost?: number
     forehand?: string
     height?: number
     weight?: number
     age?: number
+    telegramId: number
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -97,6 +98,7 @@ export const useUserStore = defineStore('user', () => {
                 height: response.data.height,
                 weight: response.data.weight,
                 age: response.data.age,
+                telegramId: response.data.telegramId,
             }
 
             // If this is the current user based on Telegram data
@@ -142,6 +144,7 @@ export const useUserStore = defineStore('user', () => {
                 photo: userData.photo,
                 gamesPlayed: response.data.gamesPlayed,
                 gamesWon: response.data.gamesWon,
+                telegramId: response.data.telegramId,
             }
 
             currentUser.value = user

@@ -34,7 +34,7 @@
     <div v-else-if="game" class="space-y-5">
       <!-- Players Card -->
       <div class="bg-white rounded-xl shadow-sm p-6 mt-6">
-        <div class="flex justify-between">
+        <div class="grid grid-cols-1">
           <GamePlayerCard
             :username="game.player1Username"
             :playerName="game.player1.firstName"

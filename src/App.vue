@@ -67,13 +67,12 @@
 
 <script setup>
 import { ref, onMounted, onBeforeMount } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 import { useUserStore } from "./stores/user";
 import { Icon } from "@iconify/vue";
 import TennisBallLoader from "@/components/TennisBallLoader.vue";
 
 const router = useRouter();
-const route = useRoute();
 const userStore = useUserStore();
 const telegramWebApp = ref(null);
 const loading = ref(true);
