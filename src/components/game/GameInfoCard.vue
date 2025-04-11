@@ -19,7 +19,7 @@
       </GameInfoItem>
 
       <GameInfoItem v-if="isCompleted" icon="mdi:trophy" title="Переможець">
-        {{
+        @{{
           game.winnerId === game.player1Id ? game.player1Username : game.player2Username
         }}
       </GameInfoItem>

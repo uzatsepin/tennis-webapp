@@ -7,9 +7,24 @@
         <TennisBallLoader size="large" />
       </div>
       <div v-else>
-        <RouterView />
+        <RouterView v-slot="{ Component }">
+          <transition
+            name="page-transition"
+            @enter="startPageTransition"
+            @after-enter="endPageTransition"
+          >
+            <component :is="Component" />
+          </transition>
+        </RouterView>
       </div>
     </main>
+
+    <!-- Page Transition Loader -->
+    <transition name="fade">
+      <div v-if="isPageLoading" class="page-transition-loader">
+        <TennisBallLoader size="medium" :showText="false" />
+      </div>
+    </transition>
 
     <!-- Bottom Navigation -->
     <nav
@@ -76,6 +91,18 @@ const router = useRouter();
 const userStore = useUserStore();
 const telegramWebApp = ref(null);
 const loading = ref(true);
+const isPageLoading = ref(false);
+
+// Function to handle page transition animations
+const startPageTransition = () => {
+  isPageLoading.value = true;
+};
+
+const endPageTransition = () => {
+  setTimeout(() => {
+    isPageLoading.value = false;
+  }, 300); // Short delay to ensure smooth transition
+};
 
 // Function to manually select a user (for non-Telegram environments)
 const selectUser = async (userId) => {
@@ -182,6 +209,48 @@ body {
   scroll-behavior: auto !important;
   touch-action: manipulation; /* Prevents double-tap to zoom on iOS Safari */
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0); /* Remove tap highlight on mobile */
+}
+
+/* Page transition animations */
+.page-transition-enter-active,
+.page-transition-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.page-transition-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* Fade animation for the loader */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Page transition loader styling */
+.page-transition-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.7);
+  z-index: 1000;
+  backdrop-filter: blur(3px);
 }
 
 /* Apply touch-action to all interactive elements to prevent zoom */
