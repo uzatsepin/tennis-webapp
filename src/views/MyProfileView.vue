@@ -136,6 +136,64 @@
 
     <!-- Authenticated User Profile -->
     <div v-else class="space-y-6 z-10">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div
+          class="bg-white rounded-xl shadow-sm p-5 transition-all hover:shadow-md cursor-pointer"
+          @click="navigateTo('/rankings')"
+        >
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-sm text-gray-500 mb-1">Позиція в рейтингу</p>
+              <p class="text-2xl font-bold text-gray-900">
+                {{ userRanking ? `#${userRanking.position}` : "—" }}
+              </p>
+            </div>
+            <div
+              class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center"
+            >
+              <Icon icon="mdi:trophy" class="text-2xl text-blue-900" />
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white rounded-xl shadow-sm p-5 transition-all hover:shadow-md cursor-pointer"
+          @click="navigateTo('/games')"
+        >
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-sm text-gray-500 mb-1">Заплановані ігри</p>
+              <p class="text-2xl font-bold text-gray-900">
+                {{ pendingGamesCount || "—" }}
+              </p>
+            </div>
+            <div
+              class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center"
+            >
+              <Icon icon="mdi:calendar" class="text-2xl text-blue-900" />
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white rounded-xl shadow-sm p-5 transition-all hover:shadow-md cursor-pointer"
+          @click="navigateTo('/profile')"
+        >
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-sm text-gray-500 mb-1">Статистика перемог</p>
+              <p class="text-2xl font-bold text-gray-900">
+                {{ winRate !== null ? `${winRate}%` : "—" }}
+              </p>
+            </div>
+            <div
+              class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center"
+            >
+              <Icon icon="mdi:chart-line-variant" class="text-2xl text-blue-900" />
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- Profile Tabs -->
       <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="flex border-b">
@@ -657,6 +715,7 @@ import { getStatusText } from "@/utils/utils";
 const router = useRouter();
 const userStore = useUserStore();
 const gameStore = useGameStore();
+const recentGames = ref<Game[]>([]);
 
 const userGames = ref<any[]>([]);
 const userRanking = ref<any>(null);
@@ -681,6 +740,22 @@ const telegramPhoto = computed(() => {
   }
   return null;
 });
+
+const pendingGamesCount = computed(() => {
+  if (!recentGames.value.length || !userStore.currentUser) return 0;
+
+  const userId = userStore.currentUser?.id;
+  return recentGames.value.filter(
+    (game) =>
+      (game.status === GameStatus.PENDING || game.status === GameStatus.SCHEDULED) &&
+      (game.player1Id === userId || game.player2Id === userId)
+  ).length;
+});
+
+// Helper functions
+const navigateTo = (path: string): void => {
+  router.push(path);
+};
 
 onMounted(async () => {
   isLoading.value = true;

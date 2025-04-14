@@ -85,64 +85,31 @@
       </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <!-- Service Stats -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
       <div
-        class="bg-white rounded-xl shadow-sm p-5 transition-all hover:shadow-md cursor-pointer"
-        @click="navigateTo('/rankings')"
+        class="bg-gray-50 rounded-xl p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
       >
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm text-gray-500 mb-1">Позиція в рейтингу</p>
-            <p class="text-2xl font-bold text-gray-900">
-              {{ userRanking ? `#${userRanking.position}` : "—" }}
-            </p>
-          </div>
-          <div
-            class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center"
-          >
-            <Icon icon="mdi:trophy" class="text-2xl text-blue-900" />
-          </div>
+        <div>
+          <p class="text-sm text-gray-600 mb-1">Всього гравців</p>
+          <p class="text-2xl font-bold text-gray-900">{{ appStats?.totalUsers }}</p>
+        </div>
+        <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+          <Icon icon="lucide:users" class="text-2xl text-blue-800" />
         </div>
       </div>
-
       <div
-        class="bg-white rounded-xl shadow-sm p-5 transition-all hover:shadow-md cursor-pointer"
-        @click="navigateTo('/games')"
+        class="bg-gray-50 rounded-xl p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
       >
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm text-gray-500 mb-1">Заплановані ігри</p>
-            <p class="text-2xl font-bold text-gray-900">{{ pendingGamesCount || "—" }}</p>
-          </div>
-          <div
-            class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center"
-          >
-            <Icon icon="mdi:calendar" class="text-2xl text-blue-900" />
-          </div>
+        <div>
+          <p class="text-sm text-gray-600 mb-1">Зіграно ігор</p>
+          <p class="text-2xl font-bold text-gray-900">{{ appStats?.completedGames }}</p>
         </div>
-      </div>
-
-      <div
-        class="bg-white rounded-xl shadow-sm p-5 transition-all hover:shadow-md cursor-pointer"
-        @click="navigateTo('/profile')"
-      >
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm text-gray-500 mb-1">Статистика перемог</p>
-            <p class="text-2xl font-bold text-gray-900">
-              {{ winRate !== null ? `${winRate}%` : "—" }}
-            </p>
-          </div>
-          <div
-            class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center"
-          >
-            <Icon icon="mdi:chart-line-variant" class="text-2xl text-blue-900" />
-          </div>
+        <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+          <Icon icon="solar:tennis-bold" class="text-2xl text-blue-800" />
         </div>
       </div>
     </div>
-
     <!-- Recent Games -->
     <div class="bg-white rounded-xl shadow-sm mb-6 overflow-hidden">
       <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
@@ -299,6 +266,7 @@
         <p class="text-gray-500">Рейтинг ще не сформовано</p>
       </div>
     </div>
+    <p class="text-center text-gray-500 text-sm mt-4">ver. 0.1.3</p>
   </div>
 </template>
 
@@ -308,20 +276,22 @@ import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useGameStore } from "@/stores/game";
 import { useRankingStore } from "@/stores/ranking";
-import { GameStatus } from "@/services/api";
-import type { Game, Ranking } from "@/services/api";
+import type { Game, Ranking, Stats } from "@/services/api";
 import { Icon } from "@iconify/vue";
 import { getStatusText } from "@/utils/utils";
+import { useProfileStore } from "@/stores/profile";
 
 const router = useRouter();
 const userStore = useUserStore();
 const gameStore = useGameStore();
 const rankingStore = useRankingStore();
+const profile = useProfileStore();
 
 const isLoading = ref(true);
 const recentGames = ref<Game[]>([]);
 const topPlayers = ref<Ranking[]>([]);
 const userRanking = ref<Ranking>();
+const appStats = ref<Stats>();
 
 // Get user's photo from Telegram if available
 const telegramPhoto = computed(() => {
@@ -342,20 +312,6 @@ const winRate = computed(() => {
   return Math.round((user.gamesWon / user.gamesPlayed) * 100);
 });
 
-// Calculate pending games count
-const pendingGamesCount = computed(() => {
-  if (!recentGames.value.length || !userStore.currentUser) return 0;
-
-  const userId = userStore.currentUser?.id;
-  return recentGames.value.filter(
-    (game) =>
-      (game.status === GameStatus.PENDING || game.status === GameStatus.SCHEDULED) &&
-      (game.player1Id === userId || game.player2Id === userId)
-  ).length;
-});
-
-console.log("pendingGamesCount", pendingGamesCount.value);
-
 onMounted(async () => {
   isLoading.value = true;
 
@@ -364,6 +320,10 @@ onMounted(async () => {
     await gameStore.loadAllGames(5);
     recentGames.value = gameStore.games.slice(0, 5);
 
+    // Load Stats
+
+    await profile.loadStats();
+    appStats.value = Array.isArray(profile.stats) ? profile.stats[0] : profile.stats;
     // Load top players
     await rankingStore.loadRankings();
     topPlayers.value = rankingStore.rankings.slice(0, 5);

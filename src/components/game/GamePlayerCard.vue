@@ -11,7 +11,7 @@
       </span>
     </div>
     <p
-      class="font-medium text-gray-900 mb-1 text-center max-w-[154px] truncate"
+      class="font-medium text-gray-900 mb-1 text-center max-w-[150px] truncate"
       :title="'@' + username"
     >
       @{{ username }}

@@ -187,6 +187,7 @@ export const useGameStore = defineStore('game', () => {
             gamesPlayed: user.gamesPlayed || 0,
             createdAt: user.createdAt || new Date(),
             updatedAt: user.updatedAt || new Date(),
+            leagues: user.leagues || [],
         }
 
         return selectedOpponent.value

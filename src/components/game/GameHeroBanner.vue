@@ -20,7 +20,7 @@
     </div>
 
     <div
-      class="bg-white rounded-xl shadow-sm p-6 mx-1 absolute -bottom-28 left-0 right-0 z-20"
+      class="bg-white rounded-xl shadow-sm px-2 py-6 mx-1 absolute -bottom-28 left-0 right-0 z-20"
     >
       <slot></slot>
     </div>

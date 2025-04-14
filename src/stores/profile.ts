@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { statsApi } from '@/services/api'
+import type { Stats } from '@/services/api'
 
 export interface ProfileData {
     firstName: string
@@ -14,6 +16,7 @@ export interface ProfileData {
 
 export const useProfileStore = defineStore('profile', () => {
     const userStore = useUserStore()
+    const stats = ref<Stats[]>([])
 
     const profileData = ref<ProfileData>({
         firstName: '',
@@ -83,12 +86,28 @@ export const useProfileStore = defineStore('profile', () => {
         }
     }
 
+    async function loadStats() {
+        isLoading.value = true
+        try {
+            const response = await statsApi.getStats()
+            stats.value = response.data.stats || response.data
+            return stats.value
+        } catch (err: any) {
+            console.error('Error loading stats:', err)
+            return []
+        } finally {
+            isLoading.value = false
+        }
+    }
+
     return {
         profileData,
         isLoading,
         isSubmitting,
+        stats,
         initProfileData,
         updateProfileField,
         submitProfile,
+        loadStats,
     }
 })

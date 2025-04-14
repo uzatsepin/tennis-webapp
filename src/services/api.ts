@@ -10,6 +10,23 @@ export enum GameStatus {
     REJECTED = 'rejected', // Отклонено оппонентом
 }
 
+export interface Stats {
+    totalUsers: string
+    totalGames: string
+    completedGames: string
+    topPlayers: User[]
+    rankings: StatsRankings[]
+}
+
+export interface StatsRankings {
+    id: string
+    userId: number
+    points: number
+    position: number
+    updatedAt: Date | string
+    username: string
+}
+
 // Интерфейсы для типизации данных
 export interface User {
     _id?: string
@@ -28,6 +45,7 @@ export interface User {
     forehand?: string
     height?: number
     weight?: number
+    leagues: string[]
 }
 
 export interface Game {
@@ -65,6 +83,14 @@ export interface selectedUser {
     gamesWon: number
 }
 
+export interface League {
+    id: string
+    name: string
+    description: string
+    createdAt: Date | string
+    updatedAt: Date | string
+}
+
 // Create an axios instance with default config
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || 'https://tennis-api.razserv.cloud',
@@ -97,6 +123,19 @@ export const gameApi = {
 // Rankings related API calls
 export const rankingApi = {
     getAllRankings: () => api.get('/api/rankings'),
+}
+
+//Leagues related api calls
+export const leagueApi = {
+    getAllLeagues: () => api.get('/api/leagues'),
+    getLeagueById: (id: string) => api.get(`/api/leagues/${id}`),
+    createLeague: (leagueData: any) => api.post('/api/leagues', leagueData),
+    addUserToLeague: (leagueId: string, telegramId: string) => api.post(`/api/leagues/${leagueId}/users`, { telegramId }),
+    getLeagueUsers: (leagueId: string) => api.get(`/api/leagues/${leagueId}/users`),
+}
+
+export const statsApi = {
+    getStats: () => api.get('/api/stats'),
 }
 
 export default api
