@@ -33,6 +33,7 @@ export interface UserDisplay {
     weight?: number
     age?: number
     telegramId: number
+    leagues?: string[]
 }
 
 export const useUserStore = defineStore('user', () => {

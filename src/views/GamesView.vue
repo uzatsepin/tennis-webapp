@@ -45,7 +45,7 @@
             >
               <div class="flex justify-center items-center">
                 <Icon :icon="tab.icon" class="mr-1" />
-                <span class="max-w-[80px] truncate">{{ tab.name }}</span>
+                <span class="max-w-[70px] truncate">{{ tab.name }}</span>
               </div>
               <div
                 v-if="activeTab === tab.id"

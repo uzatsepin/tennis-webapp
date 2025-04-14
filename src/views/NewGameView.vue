@@ -178,6 +178,7 @@ onMounted(async () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       rating: user.rating,
+      leagues: user.leagues,
     }));
 
     // First check if there's a selected opponent in the store

@@ -367,28 +367,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, type Ref, nextTick, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore, type UserDisplay } from '@/stores/user'
 import { useGameStore } from '@/stores/game'
 import { GameStatus, type User } from '@/services/api'
 import { Icon } from '@iconify/vue'
 import TennisBallLoader from '@/components/TennisBallLoader.vue'
-
-interface Player {
-    _id: string
-    id: string
-    username: string
-    firstName?: string
-    lastName?: string
-    rating: number
-    photo?: string
-    age?: number
-    forehand?: string
-    height?: number
-    weight?: number
-    telegramId: string
-}
 
 interface Game {
     _id: string
@@ -488,7 +473,8 @@ onMounted(async () => {
             telegramId: userData.telegramId,
             gameLost: userData.gameLost,
             gamesWon: userData.gamesWon,
-            name: userData.name
+            name: userData.name,
+            leagues: userData.leagues,
         }
 
         // Load player games
@@ -602,7 +588,8 @@ const navigateToChallengePlayer = async () => {
         gamesLost: playerToChallenge.gameLost || 0,
         gamesPlayed: (playerToChallenge.gamesWon || 0) + (playerToChallenge.gameLost || 0),
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        leagues: playerToChallenge.leagues,
       };
 
       // Set the selected opponent in the game store
